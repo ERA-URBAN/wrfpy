@@ -6,16 +6,52 @@ license:        APACHE 2.0
 author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 '''
 
+import logging
+
+# define global LOG variables
+DEFAULT_LOG_LEVEL = 'debug'
+LOG_LEVELS = {'debug': logging.DEBUG,
+              'info': logging.INFO,
+              'warning': logging.WARNING,
+              'error': logging.ERROR,
+              'critical': logging.CRITICAL}
+LOG_LEVELS_LIST = LOG_LEVELS.keys()
+#LOG_FORMAT = '%(asctime)-15s %(message)s'
+LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
+DATE_FORMAT = "%Y/%m/%d/%H:%M:%S"
+logger = None
+
+def devnull():
+  '''
+  define devnull based on python version
+  '''
+  import sys
+  import os
+  if sys.version_info >= (3,3):
+    from subprocess import DEVNULL as devnull
+  elif sys.version_info >= (2,4):
+    devnull = open(os.devnull, 'wb')
+  else:
+    assert sys.version_info >=(2,4)
+  return devnull
+
+
 def silentremove(filename):
   '''
-  Remove a file without raising an error if the file does not exist
+  Remove a file or directory without raising an error if the file or
+  directory does not exist
   '''
-  import os, errno
+  import os
+  import errno
+  import shutil
   try:
     os.remove(filename)
   except OSError as e:
     if e.errno != errno.ENOENT: # errno.ENOENT = no such file or directory
-      raise # re-raise exception if a different error occured
+      if e.errno == errno.EISDIR:
+        shutil.rmtree(filename)
+      else:
+        raise # re-raise exception if a different error occured
 
 
 def get_domains():
@@ -37,8 +73,8 @@ def return_validate(date_text, format='%Y-%m-%d_%H'):
   try:
     date_time = datetime.strptime(date_text, format)
   except ValueError:
-    self.logger.error('Incorrect date format, should be %s', %format)
-    raise ValueError('Incorrect date format, should be %s', %format)
+    logger.error('Incorrect date format, should be %s' %format)
+    raise ValueError('Incorrect date format, should be %s' %format)
   return date_time
 
 
@@ -51,7 +87,7 @@ def check_file_exists(filename):
           pass  # file exists and is readable, nothing else to do
   except IOError as e:
     # file does not exist OR no read permissions
-    self.logger.error('Unable to open file: %s', %filename)
+    logger.error('Unable to open file: %s' %filename)
     raise  # re-raise exception
 
 
@@ -59,16 +95,14 @@ def validate_time_wrfout(wrfout, current_time):
   '''
   Validate if current_time is in wrfout file
   '''
+  from datetime import datetime
   # get list of timesteps in wrfout file (list of datetime objects)
   time_steps = timesteps_wrfout(wrfout)
-  # get start date from wrfout filename
-  time_string = wrfout[-19:-6]
-  start_time = return_validate(time_string)
   # convert current_time to datetime object
   ctime = return_validate(current_time)
   if ctime not in time_steps:
     message = 'Time ' + current_time + 'not found in wrfout file: ' + wrfout
-    self.logger.error(message)
+    logger.error(message)
     raise ValueError(message)
 
 
@@ -79,12 +113,16 @@ def timesteps_wrfout(wrfout):
     - wrfout: path to a wrfout file
   '''
   from netCDF4 import Dataset as ncdf
+  from datetime import timedelta
   check_file_exists(wrfout)  # check if wrfout file exists
   # read time information from wrfout file
   ncfile = ncdf(wrfout, format='NETCDF4')
   # minutes since start of simulation, rounded to 1 decimal float
   tvar = [round(nc,0) for nc in ncfile.variables['XTIME'][:]]
   ncfile.close()
+  # get start date from wrfout filename
+  time_string = wrfout[-19:-6]
+  start_time = return_validate(time_string)
   # times in netcdf file
   time_steps = [start_time + timedelta(minutes=step) for step in tvar]
   return time_steps
@@ -97,14 +135,32 @@ def datetime_to_string(dtime, format='%Y-%m-%d_%H'):
     - dtime: datetime object
     - (optional) format: string format to return
   '''
+  from datetime import datetime
   # check if dtime is of instance datetime
-  if not isinstance(dtime, datetime)
+  if not isinstance(dtime, datetime):
     message = 'input variable dtime is not of type datetime'
-    self.logger.error(message)
+    logger.error(message)
     raise IOError(message)
   # return datetime as a string
   return dtime.strftime(format)
 
+
+def start_logging(filename, level=DEFAULT_LOG_LEVEL):
+  '''
+  Start logging with given filename and level.
+  '''
+  global logger
+  if logger == None:
+    logger = logging.getLogger()
+  else:  # wish there was a logger.close()
+    for handler in logger.handlers[:]:  # make a copy of the list
+      logger.removeHandler(handler)
+  logger.setLevel(LOG_LEVELS[level])
+  formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
+  fh = logging.FileHandler(filename)
+  fh.setFormatter(formatter)
+  logger.addHandler(fh)
+  return logger
 
 def get_logger():
   pass
