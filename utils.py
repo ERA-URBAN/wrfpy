@@ -162,5 +162,26 @@ def start_logging(filename, level=DEFAULT_LOG_LEVEL):
   logger.addHandler(fh)
   return logger
 
+
 def get_logger():
   pass
+
+
+def datetime_range(start, end, delta):
+  '''
+  Return a generator of all timesteps between two datetime.date(time) objects.
+  Time between timesteps is provided by the argument delta.
+  '''
+  import datetime
+  current = start
+  if not isinstance(delta, datetime.timedelta):
+    try:
+      delta = datetime.timedelta(**delta)
+    except TypeError:
+      message = ('delta argument in utils.datetime_range should be of a ',
+                 'mapping of datetime.timedelta type')
+      logger.error(message)
+      raise TypeError(message)
+  while current < end:
+    yield current
+    current += delta
