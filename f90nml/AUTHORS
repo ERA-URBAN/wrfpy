@@ -1,0 +1,15 @@
+Marshall Ward:
+    - Creator and Maintainer
+    - Email: <f90nml@marshallward.org>
+
+Huziy Oleksander:
+    - Streamlined namelist output interface
+
+Kai Li:
+    - Python 2.6 output support
+
+Jacob Williams:
+    - Extensive testing of derived type support
+
+Dalon Work:
+    - Contributions to multidimensional support
