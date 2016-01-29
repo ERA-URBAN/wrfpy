@@ -25,6 +25,11 @@ class config:
       # create config file
       self._create_empty_config()
       # TODO: exit and notify user to manually edit config file
+    # read json config file
+    self._read_json()
+    import pdb; pdb.set_trace()
+    # check config file for consistenc and errors
+    self._check_config()
 
 
   def _create_empty_config(self):
@@ -36,16 +41,24 @@ class config:
                   'archive_dir', 'boundary_dir', 'upp_archive_dir', 'work_dir']
     keys_upp = ['upp', 'upp_interval']
     keys_wrfda = ['wrfda', 'wrfda_type']
-    keys_general = ['start_date', 'end_date', 'boundary_interval']
-
+    keys_general = ['start_date', 'end_date', 'boundary_interval' 'ref_lon'
+                    'ref_lat']
+    keys_wps = ['ref_lon', 'ref_lat', 'wps_geog_data_path']
     # create dictionaries
     config_dir = {key: '' for key in keys_dir}
     options_general = {key: '' for key in keys_general}
     options_wrfda = {key: '' for key in keys_wrfda}
     options_upp = {key: '' for key in keys_upp}
+    options_wps = {key: '' for key in keys_wps}
+    # add defaults to wps dictionary
+    options_wps['map_proj'] = 'lambert'
+    options_wps['truelat1'] = 30.0
+    options_wps['truelat2'] = 60.0
+    options_wps['stand_lon'] = 4.55
     # combine dictionaries
     config_out = {}
     config_out['filesystem'] = config_dir
+    config_out['options_wps'] = options_wps
     config_out['options_upp'] = options_upp
     config_out['options_wrfda'] = options_wrfda
     config_out['options_general'] = options_general
