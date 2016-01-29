@@ -281,5 +281,9 @@ NCAR
 if __name__ == "__main__":
   logger = utils.start_logging('test.log')
   postprocess = upp()
-  postprocess.run_unipost_file(
-    '/home/WUR/haren009/sources/WRFV3/run/wrfout_d01_2014-07-16_00:00:00')
+  wrfout_files = glob.glob(os.path.join(config['wrf_run_dir'], 'wrfout_d01*'))
+  postprocess.run_unipost_file(wrfout_files[0], use_t0=True)
+  [postprocess.run_unipost_file(f) for f in wrfout_files[1:]]
+
+  #postprocess.run_unipost_file(
+  #  '/home/WUR/haren009/sources/WRFV3/run/wrfout_d01_2014-07-16_00:00:00')
