@@ -47,11 +47,10 @@ class upp:
     Check if archive dir exists, create if not.
     The archive dir is used to ...
     '''
-    if not os.path.exists(config['upp_archive_dir']):
-      os.makedirs(config['upp_archive_dir'])  # create archive dir
+    utils._create_directory(config['upp_archive_dir'])  # create archive dir
     # create post_dir (remove old one if needed)
     utils.silentremove(config['post_dir'])
-    os.makedirs(config['post_dir'])
+    utils._create_directory(config['post_dir'])
 
 
 
@@ -62,11 +61,7 @@ class upp:
     logger.debug('Preparing postprd directory: %s' %config['post_dir'])
 
     # create config['post_dir'] if it does not exist yet
-    try:
-      os.makedirs(config['post_dir'])
-    except OSError as e:
-      if e.errno != errno.EEXIST:  # directory already exists
-        raise # re-raise exception if a different error occured
+    utils._create_directory(config['post_dir'])
 
     # Link all the relevant files need to compute various diagnostics
     relpath_to_link = ['EmisCoeff/Big_Endian/EmisCoeff.bin',

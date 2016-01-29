@@ -59,7 +59,7 @@ def preprocess():
 def prepare():
   if os.path.exists(env.WRFDA_WORKDIR):
     shutil.rmtree(env.WRFDA_WORKDIR)  # remove env.WRFDA_WORKDIR
-  os.makedirs(env.WRFDA_WORKDIR)  # create empty env.WRFDA_WORKDIR
+  utils._create_directory(env.WRFDA_WORKDIR)  # create empty env.WRFDA_WORKDIR
   # copy namelis.input to env.WRFDA_WORKDIR
   wrfda_namelist = os.path.join(
                   env.WRFDADIR, 'var/test/tutorial/namelist.input')
@@ -149,7 +149,7 @@ def updatebc(boundary_type):
   # general functionality independent of boundary type in parame.in
   if os.path.exists(env.WRFDA_WORKDIR):
     shutil.rmtree(env.WRFDA_WORKDIR)  # remove env.WRFDA_WORKDIR
-  os.makedirs(env.WRFDA_WORKDIR)  # create empty env.WRFDA_WORKDIR
+  utils._create_directory(env.WRFDA_WORKDIR)
   # define parame.in file
   create_parame(boundary_type)
   # symlink da_update_bc.exe

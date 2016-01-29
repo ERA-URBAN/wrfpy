@@ -193,3 +193,14 @@ def excepthook(*args):
   gets logged
   '''
   logger.error('Uncaught exception:', exc_info=args)
+
+
+def _create_directory(path):
+  '''
+  Create a directory if it does not exist yet
+  '''
+  try:
+    os.makedirs(path)
+  except OSError as e:
+    if e.errno != errno.EEXIST:  # directory already exists, no problem
+      raise # re-raise exception if a different error occured
