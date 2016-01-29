@@ -12,7 +12,9 @@ class run_wrf(config):
   '''
   def __init__(self):
     config.__init__(self)
-    pass
+    # TODO: wrf_run_dir should be flexible if running in UPP mode
+    self.wrf_run_dir = self.config['filesystem']['wrf_run_dir']
+
 
   def cleanup_previous_wrf_run(self):
     from utils import silentremove
@@ -74,11 +76,37 @@ class run_wrf(config):
     '''
     run wrf real.exe
     '''
-    pass
+    # check if slurm_real.exe is defined
+    if len(self.config['slurm']['slurm_real.exe']):
+      # TODO: copy slurm script to wrf run dir (test if needed?)
+      real_command = self.config['slurm']['slurm_real.exe']
+    else:  # run locally
+      real_command = os.path.join(self.config['filesystem']['wrf_dir'],
+                              'main', 'real.exe')
+      utils.check_file_exists(real_command)
+      try:
+        subprocess.check_call(real_command, cwd=self.wrf_rundir,
+                              stdout=utils.devnull(), stderr=utils.devnull())
+      except CalledProcessError:
+        logger.error('real.exe failed %s:' %real_command)
+        raise  # re-raise exception
 
 
   def run_wrf(self):
     '''
     run wrf.exe
     '''
-    pass
+    # check if slurm_wrf.exe is defined
+    if len(self.config['slurm']['slurm_wrf.exe']):
+      # TODO: copy slurm script to wrf run dir (test if needed?)
+      wrf_command = self.config['slurm']['slurm_wrf.exe']
+    else:  # run locally
+      real_command = os.path.join(self.config['filesystem']['wrf_dir'],
+                              'main', 'wrf.exe')
+      utils.check_file_exists(real_command)
+      try:
+        subprocess.check_call(real_command, cwd=self.wrf_rundir,
+                              stdout=utils.devnull(), stderr=utils.devnull())
+      except CalledProcessError:
+        logger.error('wrf.exe failed %s:' %real_command)
+        raise  # re-raise exception
