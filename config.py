@@ -42,14 +42,17 @@ class config:
     keys_upp = ['upp', 'upp_interval']
     keys_wrfda = ['wrfda', 'wrfda_type']
     keys_general = ['start_date', 'end_date', 'boundary_interval' 'ref_lon'
-                    'ref_lat']
+                    'ref_lat', 'run_hours']
     keys_wps = ['ref_lon', 'ref_lat', 'wps_geog_data_path']
+    keys_slurm = ['slurm_real.exe', 'slurm_wrf.exe']
+
     # create dictionaries
     config_dir = {key: '' for key in keys_dir}
     options_general = {key: '' for key in keys_general}
     options_wrfda = {key: '' for key in keys_wrfda}
     options_upp = {key: '' for key in keys_upp}
     options_wps = {key: '' for key in keys_wps}
+    options_slurm = {key: '' for key in keys_slurm}
     # add defaults to wps dictionary
     options_wps['map_proj'] = 'lambert'
     options_wps['truelat1'] = 30.0
@@ -60,6 +63,7 @@ class config:
     config_out['filesystem'] = config_dir
     config_out['options_wps'] = options_wps
     config_out['options_upp'] = options_upp
+    config_out['options_slurm'] = options_slurm
     config_out['options_wrfda'] = options_wrfda
     config_out['options_general'] = options_general
     # write json config file
