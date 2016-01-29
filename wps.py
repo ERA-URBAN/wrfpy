@@ -17,10 +17,14 @@ class wps(config):
   '''
   description
   '''
-  def __init__(self):
-    config.__init__(self)
+  def __init__(self, boundary_dir):
+    config.__init__(self)  # load config
+    # define and create wps working directory
     self.wps_workdir = os.path.join(self.config['filesystem']['work_dir'], wps)
-
+    utils._create_directory(self.wps_workdir)
+    '''boundary_dir as an argument so we switch between boundary_dir and
+       upp_archive_dir defined in config module'''
+    self.boundary_dir = boundary_dir
 
   def clean_boundaries_wps():
   '''
@@ -58,7 +62,7 @@ class wps(config):
     link boundary grib files to wps work directory with the required naming
     '''
     # get list of files to link
-    filelist = glob.glob(self.config[''][''])  # TODO: fix boundary location
+    filelist = glob.glob(self.boundary_dir)
     if len(filelist) == 0:
       message = 'linking boundary files failed, no files found to link'
       logger.error(message)
@@ -66,9 +70,8 @@ class wps(config):
     # get list of filename extensions to use for destination link
     linkext = self._get_ext_list(len(filelist))
     # link grib files
-    # TODO: set destdir
     [os.symlink(filelist[idx], os.path.join(
-      destdir, 'GRIBFILE' + linkext[idx])) for idx in range(len(filelist))]
+      self.wps_workdir, 'GRIBFILE' + linkext[idx])) for idx in range(len(filelist))]
 
 
   def _get_ext_list(num):
