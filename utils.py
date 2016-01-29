@@ -185,3 +185,11 @@ def datetime_range(start, end, delta):
   while current < end:
     yield current
     current += delta
+
+
+def excepthook(*args):
+  '''
+  Replace sys.excepthook with custom handler so any uncaught exception
+  gets logged
+  '''
+  logger.error('Uncaught exception:', exc_info=args)
