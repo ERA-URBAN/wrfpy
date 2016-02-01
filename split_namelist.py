@@ -23,6 +23,7 @@ class split_namelist:
     # get list of namelist keys
     self.keys = self.wrf_nml.keys()
 
+
   def _create_namelist_copyies(self)
     '''
     create two (shallow) copies of the variable containing the namelist
@@ -59,7 +60,8 @@ class split_namelist:
         if isinstance(self.wrf_nml[section][key], list):
           if key in special_cases1:
             if len(self.wrf_nml][section][key] > 2:
-              self.wrf_nml_fine[section][key] = 1 + self.wrf_nml[section][key][2:]
+              self.wrf_nml_fine[section][key] = 1 + self.wrf_nml[
+                section][key][2:]
             else:
               self.wrf_nml_fine[section][key] = 1
           elif key in special_cases2:
@@ -69,6 +71,20 @@ class split_namelist:
             self.wrf_nml_coarse[section][key] = self.wrf_nml[section][key][0]
         elif key=='time_step':
           self.wrf_nml_fine[section][key] = int(
-            float(self.wrf_nml[section][key]) / self.wrf_nml['domains']['parent_grid_ratio'][1])
+            float(self.wrf_nml[section][key]) / self.wrf_nml['domains'][
+              'parent_grid_ratio'][1])
         elif key=='max_dom':
           self.wrf_nml_fine[section][key] = self.wrf_nml[section][key] - 1
+
+
+  def _save_namelists(self):
+    '''
+    write coarse and fine WRF namelist.input to the respective run directories
+    as namelist.forecast
+    '''
+    coarse_namelist_dir = self.config{'filesystem'}{'wrf_run_dir'} + '_coarse'
+    fine_namelist_dir = self.config{'filesystem'}{'wrf_run_dir'} + '_fine'
+    self.wrf_nml_coarse.write(os.path.join(coarse_namelist_dir,
+                                           'namelist.forecast'))
+    self.wrf_nml_fine.write(os.path.join(fine_namelist_dir,
+                                         'namelist.forecast'))
