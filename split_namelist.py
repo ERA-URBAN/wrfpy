@@ -81,7 +81,7 @@ class split_nml_shared(config):
 
 
 
-class split_nml_wrf(split_namelist_shared):
+class split_nml_wrf(split_nml_shared):
   def __init__(self):
     split_nml_shared.__init__(self)
     split_nml_shared.read_namelist(wrf_namelist)  # TODO: define wrf_namelist
@@ -106,9 +106,8 @@ class split_nml_wrf(split_namelist_shared):
 
 
 
-class split_namelist_wps(config):
+class split_nml_wps(split_nml_shared):
   def __init__(self):
-    config.__init__(self)
     split_nml_shared.__init__(self)
     split_nml_shared.read_namelist(wps_namelist)  # TODO: define wps_namelist
     split_nml_shared.create_namelist_copies()
