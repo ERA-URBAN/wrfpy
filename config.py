@@ -39,28 +39,26 @@ class config:
     # define keys
     keys_dir = ['wrf_dir', 'wrf_run_dir', 'wrfda_dir', 'upp_dir', 'wps_dir'
                   'archive_dir', 'boundary_dir', 'upp_archive_dir', 'work_dir']
+    keys_wrf = ['namelist.input']
     keys_upp = ['upp', 'upp_interval']
     keys_wrfda = ['wrfda', 'wrfda_type']
     keys_general = ['start_date', 'end_date', 'boundary_interval' 'ref_lon'
                     'ref_lat', 'run_hours']
-    keys_wps = ['ref_lon', 'ref_lat', 'wps_geog_data_path']
+    keys_wps = ['namelist.wps']
     keys_slurm = ['slurm_real.exe', 'slurm_wrf.exe']
 
     # create dictionaries
     config_dir = {key: '' for key in keys_dir}
     options_general = {key: '' for key in keys_general}
     options_wrfda = {key: '' for key in keys_wrfda}
+    options_wrf = {key: '' for key in keys_wrf}
     options_upp = {key: '' for key in keys_upp}
     options_wps = {key: '' for key in keys_wps}
     options_slurm = {key: '' for key in keys_slurm}
-    # add defaults to wps dictionary
-    options_wps['map_proj'] = 'lambert'
-    options_wps['truelat1'] = 30.0
-    options_wps['truelat2'] = 60.0
-    options_wps['stand_lon'] = 4.55
     # combine dictionaries
     config_out = {}
     config_out['filesystem'] = config_dir
+    config_out['options_wrf'] = options_wrf
     config_out['options_wps'] = options_wps
     config_out['options_upp'] = options_upp
     config_out['options_slurm'] = options_slurm
@@ -84,6 +82,8 @@ class config:
     check configuration file
     '''
     self._check_general()  # check general options
+    self._check_wrf()  # check wrf options
+    self._check_wps()  # check wps options
     self._check_wrfda()  # check wrfda
     self._check_upp()  # check upp
 
@@ -172,6 +172,46 @@ class config:
       end_date - start_date).total_seconds()), (
         'boundary interval is larger than time between start_date and ',
         'end_date')
+
+
+  def _check_wps(self):
+    '''
+    check wps options in json config file
+    '''
+    # verify that the config option is specified by the user
+    assert (len(self.config['options_wps']['namelist.wps']) > 0), (
+      'No WPS namelist.wps specified in config file')
+    # check if specified namelist.wps exist and are readable
+    utils.check_file_exists(self.config['options_wps']['namelist.wps'])
+    # check if namelist.wps is in the required format and has all keys needed
+    self._check_namelist_wps()
+
+
+  def _check_namelist_wps(self):
+    '''
+    check if namelist.wps is in the required format and has all keys needed
+    '''
+    pass
+
+
+  def _check_wrf(self):
+    '''
+    check wrf options in json config file
+    '''
+    # verify that the config option is specified by the user
+    assert (len(self.config['options_wrf']['namelist.input']) > 0), (
+      'No WRF namelist.input specified in config file')
+    # check if specified namelist.wps exist and are readable
+    utils.check_file_exists(self.config['options_wrf']['namelist.input'])
+    # check if namelist.input is in the required format and has all keys needed
+    self._check_namelist_wrf()
+
+
+  def _check_namelist_wrf(self):
+    '''
+    check if namelist.input is in the required format and has all keys needed
+    '''
+    pass
 
 
 if __name__=="__main__":
