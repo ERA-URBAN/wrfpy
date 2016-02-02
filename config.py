@@ -9,6 +9,7 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 import json
 import os
 import utils
+import f90nml
 
 class config:
   '''
@@ -190,6 +191,38 @@ class config:
   def _check_namelist_wps(self):
     '''
     check if namelist.wps is in the required format and has all keys needed
+    '''
+    # verify that example namelist.wps exists and is not removed by user
+    basepath = utils.get_script_path()
+    example_file = os.path.join(basepath, 'examples', 'namelist.wps')
+    utils.check_file_exists(example_file)
+    # load specified namelist
+    self.user_nml = f90nml.read(self.config['options_wps']['namelist.wps'])
+    # verify that all keys in self.user_nml are also in example namelist
+    self._verify_namelist_wps_keys()
+    # validate the key information specified
+    self._validate_namelist_wps_keys()
+
+
+  def _verify_namelist_wps_keys(self):
+    '''
+    verify that all keys in example_nml are also in user_nml
+    '''
+    # load example namelist.wps
+    example_nml = f90nml.read(example_file)
+    example_keys = example_nml.keys()
+    user_keys = self.user_nml.keys()
+    for section in example_nml.keys():
+      for key in example_nml[section].keys():
+        assert user_keys[section][key], (
+          'Key not found in user specified namelist: %s'
+          %self.config['options_wps']['namelist.wps'])
+
+
+  def _validate_namelist_wps_keys(self):
+    '''
+    verify that user specified namelist.wps contains valid information
+    for all domains specified by the max_dom key
     '''
     pass
 
