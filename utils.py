@@ -204,3 +204,10 @@ def _create_directory(path):
   except OSError as e:
     if e.errno != errno.EEXIST:  # directory already exists, no problem
       raise # re-raise exception if a different error occured
+
+
+def get_script_path():
+  '''
+  get the path of the python script
+  '''
+  return os.path.dirname(os.path.realpath(sys.argv[0]))
