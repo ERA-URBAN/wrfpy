@@ -77,8 +77,8 @@ class config:
     '''
     print message pointing the user to edit the configuration file
     '''
-    message = '''A configuration file has been created at %s.
-Please edit the configuration file before continueing.''' %self.configfile
+    message = '''>>> A configuration file has been created at %s.
+>>> Please edit the configuration file before continuing.''' %self.configfile
     print(message)
     logger.info(message)
 
