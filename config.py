@@ -68,6 +68,19 @@ class config:
     # write json config file
     with open(self.configfile, 'w') as outfile:
       json.dump(config_out, outfile,sort_keys=True, indent=4)
+    # print message pointing user to edit config file
+    self._print_config_message()
+    exit()  # exit
+
+
+  def _print_config_message(self):
+    '''
+    print message pointing the user to edit the configuration file
+    '''
+    message = '''A configuration file has been created at %s.
+Please edit the configuration file before continueing.''' %self.configfile
+    print(message)
+    logger.info(message)
 
 
   def _read_json(self):
