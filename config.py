@@ -43,7 +43,7 @@ class config:
     keys_wrf = ['namelist.input']
     keys_upp = ['upp', 'upp_interval']
     keys_wrfda = ['wrfda', 'wrfda_type']
-    keys_general = ['start_date', 'end_date', 'boundary_interval', 'ref_lon',
+    keys_general = ['date_start', 'date_end', 'boundary_interval', 'ref_lon',
                     'ref_lat', 'run_hours']
     keys_wps = ['namelist.wps']
     keys_slurm = ['slurm_real.exe', 'slurm_wrf.exe']
@@ -162,15 +162,15 @@ class config:
   def _check_general(self):
     '''
     check general options in json config file
-      - start_date and end_date have a valid format
+      - date_start and date_end have a valid format
       - end_date is after start_date
       - boundary_interval is an integer
     '''
     # check if start_date and end_date are in valid format
     start_date = utils.return_validate(
-      self.config['options_general']['start_date'])
+      self.config['options_general']['date_start'])
     end_date = utils.return_validate(
-      self.config['options_general']['end_date'])
+      self.config['options_general']['date_end'])
     # end_date should be after start_date
     if (start_date >= end_date):
       message = ''
