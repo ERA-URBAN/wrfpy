@@ -43,7 +43,7 @@ class config:
     keys_wrf = ['namelist.input']
     keys_upp = ['upp', 'upp_interval']
     keys_wrfda = ['wrfda', 'wrfda_type']
-    keys_general = ['start_date', 'end_date', 'boundary_interval' 'ref_lon'
+    keys_general = ['start_date', 'end_date', 'boundary_interval', 'ref_lon',
                     'ref_lat', 'run_hours']
     keys_wps = ['namelist.wps']
     keys_slurm = ['slurm_real.exe', 'slurm_wrf.exe']
