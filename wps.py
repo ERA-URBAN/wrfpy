@@ -36,39 +36,39 @@ class wps(config):
 
 
   def _clean_boundaries_wps():
-  '''
-  clean old leftover boundary files in WPS directory
-  '''
-  # create list of files to remove
-  files = [ os.path.join(self.config['filesystem']['wps_dir'], ext)
-           for ext in ['GRIBFILE.*', 'FILE:', 'PFILE:', 'PRES:'] ]
-  # remove files silently
-  [ silentremove(filename) for filename in files ]
+    '''
+    clean old leftover boundary files in WPS directory
+    '''
+    # create list of files to remove
+    files = [ os.path.join(self.config['filesystem']['wps_dir'], ext)
+            for ext in ['GRIBFILE.*', 'FILE:', 'PFILE:', 'PRES:'] ]
+    # remove files silently
+    [ silentremove(filename) for filename in files ]
 
 
   def _prepare_namelist(datestart, dateend):
-  '''
-  prepare wps namelist
-  '''
-  # copy namelist over to WPS work_dir
-  shutil.copyfile(os.path.join(self.config['options_wps']['namelist.wps'],
-    self.config['filesystem']['work_dir'], 'wps', 'namelist.wps'))
-  # read WPS namelist in WPS work_dir
-  wps_nml = f90nml.read(self.config['filesystem']['work_dir'], 'wps',
-                        'namelist.wps')
-  # get numer of domains
-  ndoms = wps_nml['share']['max_dom']
-  # check if ndoms is an integer and >0
-  if not (isinstance(ndoms, int) and ndoms>0):
-    raise ValueError("'domains_max_dom' namelist variable should be an " \
-                     "integer>0")
-  # check if both datestart and dateend are a datetime instance
-  if not all([ isinstance(dt, datetime) for dt in [datestart, dateend] ]):
-    raise TypeError("datestart and dateend must be an instance of datetime")
-  # set new datestart and dateend
-  wps_nml['share']['start_date'] = [datetime.strftime(datestart,
-                                                        '%Y-%m-%d_%H:%M:%S')] * ndoms
-  wps_nml['share']['end_date'] = [datetime.strftime(datestart,
+    '''
+    prepare wps namelist
+    '''
+    # copy namelist over to WPS work_dir
+    shutil.copyfile(os.path.join(self.config['options_wps']['namelist.wps'],
+      self.config['filesystem']['work_dir'], 'wps', 'namelist.wps'))
+    # read WPS namelist in WPS work_dir
+    wps_nml = f90nml.read(self.config['filesystem']['work_dir'], 'wps',
+                          'namelist.wps')
+    # get numer of domains
+    ndoms = wps_nml['share']['max_dom']
+    # check if ndoms is an integer and >0
+    if not (isinstance(ndoms, int) and ndoms>0):
+      raise ValueError("'domains_max_dom' namelist variable should be an " \
+                      "integer>0")
+    # check if both datestart and dateend are a datetime instance
+    if not all([ isinstance(dt, datetime) for dt in [datestart, dateend] ]):
+      raise TypeError("datestart and dateend must be an instance of datetime")
+    # set new datestart and dateend
+    wps_nml['share']['start_date'] = [datetime.strftime(datestart,
+                                                          '%Y-%m-%d_%H:%M:%S')] * ndoms
+    wps_nml['share']['end_date'] = [datetime.strftime(datestart,
                                                         '%Y-%m-%d_%H:%M:%S')] * ndoms
 
 
