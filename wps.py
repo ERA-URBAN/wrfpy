@@ -17,16 +17,25 @@ class wps(config):
   '''
   description
   '''
-  def __init__(self, boundary_dir):
+  def __init__(self, boundary_dir, datestart, dateend):
     config.__init__(self)  # load config
     # define and create wps working directory
-    self.wps_workdir = os.path.join(self.config['filesystem']['work_dir'], wps)
+    self.wps_workdir = os.path.join(self.config['filesystem']['work_dir'],
+                                    'wps')
     utils._create_directory(self.wps_workdir)
     '''boundary_dir as an argument so we switch between boundary_dir and
        upp_archive_dir defined in config module'''
     self.boundary_dir = boundary_dir
+    self._clean_boundaries_wps()  # clean leftover boundaries
+    self._prepare_namelist(datesetart, dateend)
+    self._link_boundary_files()
+    self._run_geogrid()
+    self._link_vtable
+    self._run_ungrib()
+    self._run_metgrid()
 
-  def clean_boundaries_wps():
+
+  def _clean_boundaries_wps():
   '''
   clean old leftover boundary files in WPS directory
   '''
@@ -37,7 +46,7 @@ class wps(config):
   [ silentremove(filename) for filename in files ]
 
 
-  def prepare_namelist(datestart, dateend):
+  def _prepare_namelist(datestart, dateend):
   '''
   prepare wps namelist
   '''
@@ -63,7 +72,7 @@ class wps(config):
                                                         '%Y-%m-%d_%H:%M:%S')] * ndoms
 
 
-  def link_boundary_files():
+  def _link_boundary_files():
     '''
     link boundary grib files to wps work directory with the required naming
     '''
@@ -106,6 +115,18 @@ class wps(config):
             message = 'Too many files to link'
             logger.error(message)
             raise IOError(message)
+
+
+  def _link_vtable():
+    '''
+    link the required Vtable
+    '''
+    utils.silentremove(os.path.join(self.wps_workdir, 'Vtable'))
+    # TODO: make vtable depend on the boundary source
+    vtable =  'Vtable.GFS'
+    vtable_path = os.path.join(self.config['filesystem']['wps_dir'], 'ungrib',
+                          'Variable_Tables', vtable)
+    os.symlink(vtable_path, os.path.join(self.wps_workdir, 'Vtable'))
 
 
   def _run_geogrid():
@@ -151,3 +172,7 @@ class wps(config):
     except CalledProcessError:
       logger.error('Metgrid failed %s:' %metgrid_command)
       raise  # re-raise exception
+
+
+if __name__ == "__main__":
+  runwps = wps()
