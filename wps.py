@@ -37,24 +37,30 @@ class wps(config):
   [ silentremove(filename) for filename in files ]
 
 
-  def prepare_namelist():
+  def prepare_namelist(datestart, dateend):
   '''
   prepare wps namelist
   '''
-  # read WRF namelist.input
-  wrf_nml = f90nml.read(os.path.join(
-    self.config['filesystem']['wrf_run_dir'], 'namelist.input'))  
-  # TODO: should we read namelist.forecast instead? handle UPP case
-  # read basic WPS namelist.input
-  wps_nml = f90nml.read()  # TODO add wps namelist
-  wpslist = ['wps_geog_data_path', 'ref_lat', 'ref_lon', 'truelat1',
-             'truelat2', 'stand_lon', 'map_proj']
-  [self.config['options_wps'][item] for item in wpslist]
-
-  wrf_nml['time_control']['interval_seconds']
-  ['parent_id', 'parent_grid_ratio', 'i_parent_start' 'j_parent_start',
-   'e_we', 'e_sn', 'dx', 'dy']  # dx and dy only first item needed!
-  wrf_nml['domains'][]
+  # copy namelist over to WPS work_dir
+  shutil.copyfile(os.path.join(self.config['options_wps']['namelist.wps'],
+    self.config['filesystem']['work_dir'], 'wps', 'namelist.wps'))
+  # read WPS namelist in WPS work_dir
+  wps_nml = f90nml.read(self.config['filesystem']['work_dir'], 'wps',
+                        'namelist.wps')
+  # get numer of domains
+  ndoms = wps_nml['share']['max_dom']
+  # check if ndoms is an integer and >0
+  if not (isinstance(ndoms, int) and ndoms>0):
+    raise ValueError("'domains_max_dom' namelist variable should be an " \
+                     "integer>0")
+  # check if both datestart and dateend are a datetime instance
+  if not all([ isinstance(dt, datetime) for dt in [datestart, dateend] ]):
+    raise TypeError("datestart and dateend must be an instance of datetime")
+  # set new datestart and dateend
+  wps_nml['share']['start_date'] = [datetime.strftime(datestart,
+                                                        '%Y-%m-%d_%H:%M:%S')] * ndoms
+  wps_nml['share']['end_date'] = [datetime.strftime(datestart,
+                                                        '%Y-%m-%d_%H:%M:%S')] * ndoms
 
 
   def link_boundary_files():
