@@ -178,14 +178,14 @@ class config:
       raise IOError(message)
     # boundary interval should be an int number of hours
     assert isinstance(self.config['options_general']['boundary_interval'],
-                        int), ('boundary_interval should be given as an ',
-                               'integer in %s' %self.configfile)
+                        int), ('boundary_interval should be given as an
+                               integer in %s' %self.configfile)
     # boundary interval should not be larger than time between start_date
     # and end_date
-    assert ((self.config['options_general']['boundary_interval']*3600) > (
+    assert ((self.config['options_general']['boundary_interval']*3600) < (
       end_date - start_date).total_seconds()), (
-        'boundary interval is larger than time between start_date and ',
-        'end_date')
+        'boundary interval is larger than time between start_date and 
+        end_date')
 
 
   def _check_wps(self):
@@ -207,8 +207,8 @@ class config:
     '''
     # verify that example namelist.wps exists and is not removed by user
     basepath = utils.get_script_path()
-    example_file = os.path.join(basepath, 'examples', 'namelist.wps')
-    utils.check_file_exists(example_file)
+    self.example_file = os.path.join(basepath, 'examples', 'namelist.wps')
+    utils.check_file_exists(self.example_file)
     # load specified namelist
     self.user_nml = f90nml.read(self.config['options_wps']['namelist.wps'])
     # verify that all keys in self.user_nml are also in example namelist
@@ -222,12 +222,11 @@ class config:
     verify that all keys in example_nml are also in user_nml
     '''
     # load example namelist.wps
-    example_nml = f90nml.read(example_file)
+    example_nml = f90nml.read(self.example_file)
     example_keys = example_nml.keys()
-    user_keys = self.user_nml.keys()
     for section in example_nml.keys():
       for key in example_nml[section].keys():
-        assert user_keys[section][key], (
+        assert self.user_nml[section][key], (
           'Key not found in user specified namelist: %s'
           %self.config['options_wps']['namelist.wps'])
 

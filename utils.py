@@ -7,6 +7,8 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 '''
 
 import logging
+import sys
+import os
 
 # define global LOG variables
 DEFAULT_LOG_LEVEL = 'debug'
@@ -25,8 +27,6 @@ def devnull():
   '''
   define devnull based on python version
   '''
-  import sys
-  import os
   if sys.version_info >= (3,3):
     from subprocess import DEVNULL as devnull
   elif sys.version_info >= (2,4):
@@ -41,7 +41,6 @@ def silentremove(filename):
   Remove a file or directory without raising an error if the file or
   directory does not exist
   '''
-  import os
   import errno
   import shutil
   try:
@@ -199,6 +198,7 @@ def _create_directory(path):
   '''
   Create a directory if it does not exist yet
   '''
+  import errno
   try:
     os.makedirs(path)
   except OSError as e:

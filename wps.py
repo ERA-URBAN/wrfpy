@@ -12,6 +12,9 @@ import subprocess
 import os
 import errno
 import f90nml
+from config import config
+from datetime import datetime
+import shutil
 
 class wps(config):
   '''
@@ -27,35 +30,34 @@ class wps(config):
        upp_archive_dir defined in config module'''
     self.boundary_dir = boundary_dir
     self._clean_boundaries_wps()  # clean leftover boundaries
-    self._prepare_namelist(datesetart, dateend)
+    self._prepare_namelist(datestart, dateend)
     self._link_boundary_files()
     self._run_geogrid()
-    self._link_vtable
+    self._link_vtable()
     self._run_ungrib()
     self._run_metgrid()
 
 
-  def _clean_boundaries_wps():
+  def _clean_boundaries_wps(self):
     '''
     clean old leftover boundary files in WPS directory
     '''
     # create list of files to remove
-    files = [ os.path.join(self.config['filesystem']['wps_dir'], ext)
-            for ext in ['GRIBFILE.*', 'FILE:', 'PFILE:', 'PRES:'] ]
+    files = [glob.glob(os.path.join(self.wps_workdir, ext))
+             for ext in ['GRIBFILE.*', 'FILE:', 'PFILE:', 'PRES:']]
+    # flatten list
+    files_flat = [item for sublist in files for item in sublist]
     # remove files silently
-    [ silentremove(filename) for filename in files ]
+    [ utils.silentremove(filename) for filename in files_flat ]
 
 
-  def _prepare_namelist(datestart, dateend):
+  def _prepare_namelist(self, datestart, dateend):
     '''
     prepare wps namelist
     '''
-    # copy namelist over to WPS work_dir
-    shutil.copyfile(os.path.join(self.config['options_wps']['namelist.wps'],
-      self.config['filesystem']['work_dir'], 'wps', 'namelist.wps'))
     # read WPS namelist in WPS work_dir
-    wps_nml = f90nml.read(self.config['filesystem']['work_dir'], 'wps',
-                          'namelist.wps')
+    wps_nml = f90nml.read(os.path.join(self.config['filesystem']['work_dir'],
+                                       'wps', 'namelist.wps'))
     # get numer of domains
     ndoms = wps_nml['share']['max_dom']
     # check if ndoms is an integer and >0
@@ -68,16 +70,20 @@ class wps(config):
     # set new datestart and dateend
     wps_nml['share']['start_date'] = [datetime.strftime(datestart,
                                                           '%Y-%m-%d_%H:%M:%S')] * ndoms
-    wps_nml['share']['end_date'] = [datetime.strftime(datestart,
+    wps_nml['share']['end_date'] = [datetime.strftime(dateend,
                                                         '%Y-%m-%d_%H:%M:%S')] * ndoms
+    # write namelist in wps work_dir
+    utils.silentremove(os.path.join(
+      self.config['filesystem']['work_dir'], 'wps', 'namelist.wps'))
+    wps_nml.write(os.path.join(
+      self.config['filesystem']['work_dir'], 'wps', 'namelist.wps'))
 
-
-  def _link_boundary_files():
+  def _link_boundary_files(self):
     '''
     link boundary grib files to wps work directory with the required naming
     '''
     # get list of files to link
-    filelist = glob.glob(self.boundary_dir)
+    filelist = glob.glob(os.path.join(self.boundary_dir, '*'))
     if len(filelist) == 0:
       message = 'linking boundary files failed, no files found to link'
       logger.error(message)
@@ -86,10 +92,10 @@ class wps(config):
     linkext = self._get_ext_list(len(filelist))
     # link grib files
     [os.symlink(filelist[idx], os.path.join(
-      self.wps_workdir, 'GRIBFILE' + linkext[idx])) for idx in range(len(filelist))]
+      self.wps_workdir, 'GRIBFILE.' + linkext[idx])) for idx in range(len(filelist))]
 
 
-  def _get_ext_list(num):
+  def _get_ext_list(self, num):
     '''
     create list of filename extensions for num number of files
     Extensions have the form: AAA, AAB, AAC... ABA, ABB...,BAA, BAB...
@@ -98,12 +104,12 @@ class wps(config):
     # create list of uppercase letters used linkname extension
     ext = [ascii_uppercase[idx] for idx in range(0,len(ascii_uppercase))]
     i1, i2, i3 = 0, 0, 0
-    for range(num):  # loop over number of files
+    for filenum in range(num):  # loop over number of files
       # append extension to list (or create list for first iteration)
       try:
-        list_ext = list_ext.append([ext[i1] + ext[i2] + ext[i3]])
+        list_ext.append(ext[i3] + ext[i2] + ext[i1])
       except NameError:
-        list_ext = [ext[i1] + ext[i2] + ext[i3]]
+        list_ext = [ext[i3] + ext[i2] + ext[i1]]
       i1 += 1  # increment i1
       if i1 >= len(ascii_uppercase):
         i1 = 1
@@ -115,9 +121,10 @@ class wps(config):
             message = 'Too many files to link'
             logger.error(message)
             raise IOError(message)
+    return list_ext
 
 
-  def _link_vtable():
+  def _link_vtable(self):
     '''
     link the required Vtable
     '''
@@ -129,12 +136,34 @@ class wps(config):
     os.symlink(vtable_path, os.path.join(self.wps_workdir, 'Vtable'))
 
 
-  def _run_geogrid():
+  def _link_tbl_files(self):
+    '''
+    link GEOGRID.TBL and METGRID.TBL into wps work_dir
+    '''
+    # geogrid
+    if not os.path.isfile(os.path.join(self.wps_workdir, 'geogrid',
+                                       'GEOGRID.TBL')):
+      geogridtbl = os.path.join(self.config['filesystem']['wps_dir'], 'geogrid',
+                                'GEOGRID.TBL.ARW')
+      utils._create_directory(os.path.join(self.wps_workdir, 'geogrid'))
+      os.symlink(geogridtbl, os.path.join(self.wps_workdir, 'geogrid',
+                                          'GEOGRID.TBL'))
+    # metgrid
+    if not os.path.isfile(os.path.join(self.wps_workdir, 'metgrid',
+                                       'METGRID.TBL')):
+      metgridtbl = os.path.join(self.config['filesystem']['wps_dir'], 'metgrid',
+                                'METGRID.TBL.ARW')
+      utils._create_directory(os.path.join(self.wps_workdir, 'metgrid'))
+      os.symlink(metgridtbl, os.path.join(self.wps_workdir, 'metgrid',
+                                          'METGRID.TBL'))
+
+
+  def _run_geogrid(self):
     '''
     run geogrid.exe (run it on the login node for now)
     '''
     geogrid_command = os.path.join(self.config['filesystem']['wps_dir'],
-                                   'geogrid', 'gegrid.exe')
+                                   'geogrid', 'geogrid.exe')
     utils.check_file_exists(geogrid_command)
     try:
       subprocess.check_call(geogrid_command, cwd=self.wps_workdir,
@@ -144,7 +173,7 @@ class wps(config):
       raise  # re-raise exception
 
 
-  def _run_ungrib():
+  def _run_ungrib(self):
     '''
     run ungrib.exe (run it on the login node for now)
     '''
@@ -159,7 +188,7 @@ class wps(config):
       raise  # re-raise exception
 
 
-  def _run_metgrid():
+  def _run_metgrid(self):
     '''
     run metgrid.exe (run it on the login node for now)
     '''
@@ -175,4 +204,8 @@ class wps(config):
 
 
 if __name__ == "__main__":
-  runwps = wps()
+  logger = utils.start_logging('test.log')
+  boundary_dir = '/home/WUR/haren009/sources/upp_archive/'
+  datestart= datetime(2014,07,16,00)
+  dateend = datetime(2014,07,17,00)
+  runwps = wps(boundary_dir, datestart, dateend)
