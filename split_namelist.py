@@ -10,6 +10,8 @@ import f90nml
 import copy
 import mpl_toolkits.basemap.pyproj as pyproj 
 from config import config
+import os
+import utils
 
 class split_nml_shared(config):
   '''
@@ -51,7 +53,7 @@ class split_nml_shared(config):
             # use only first item from list
             self.nml_coarse[section][key] = self.nml[section][key][0]
         elif key == 'max_dom':
-          self.nml[section][key] = 1  # only outer domain
+          self.nml_coarse[section][key] = 1  # only outer domain
         # else don't modify the key
 
 
@@ -152,35 +154,42 @@ class split_nml_wps(split_nml_shared, config):
     self.dx = float(self.nml['geogrid']['dx']) / grid_ratio
     self.dy = float(self.nml['geogrid']['dy']) / grid_ratio
     # define projection string
-    projstring  = ("+proj=lcc +lat_1=%s +lat_2=%s +lat_0=%s " 
-                   "+lon_0=%s +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+    projstring  = ("+init=EPSG:4326 +proj=lcc +lat_1=%s +lat_2=%s +lat_0=%s "
+                   "+lon_0=%s +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 "
+                   "+units=m +no_defs"
                    %(str(truelat1), str(truelat2), str(ref_lat), str(ref_lon)))
     projection = pyproj.Proj( projstring )
     # calculate east/west/south/north
-    west = (-self.nml['geogrid']['dx'] * (e_we[0] - 1) * 0.5) + (
+    west = (-self.nml['geogrid']['dx'] * (e_we[0] - 1 ) * 0.5) + (
       (i_start[1] - 1) * self.nml['geogrid']['dx'])
-    south = (-self.nml['geogrid']['dy'] * (e_sn[0] - 1) * 0.5) + (
+    south = (-self.nml['geogrid']['dy'] * (e_sn[0] - 1 ) * 0.5) + (
       (j_start[1] - 1) * self.nml['geogrid']['dy'])
-    east = (self.nml['geogrid']['dx'] * (e_we[0] - 1) * 0.5) + (
-      (e_we[1] - 1) * self.dx)
-    north = (self.nml['geogrid']['dy'] * (e_sn[0] - 1) * 0.5) + (
-      (e_sn[1] - 1) * self.dy)
+    east = west + ((e_we[1] -1 ) * self.dx)
+    north = south + ((e_sn[1] -1 ) * self.dy)
     # new ref_lat and ref_lon
     self.ref_lon, self.ref_lat = projection((west + east) * 0.5,
                                           (north + south) * 0.5,
-                                          inverse=True )
-    # TODO: fix projection, result seems wrong
+                                          inverse=True)
 
-	
+
   def _save_namelists(self):
     '''
     write coarse and fine WRF namelist.input to the respective run directories
     as namelist.forecast
     '''
+    # define namelist directories
     coarse_namelist_dir = os.path.join(self.config['filesystem']['work_dir'],
                                        'wps_coarse')
     fine_namelist_dir = os.path.join(self.config['filesystem']['work_dir'],
                                        'wps_fine')
+    # create directories
+    [utils._create_directory(directory) for directory in [coarse_namelist_dir,
+                                                          fine_namelist_dir]]
+    # remove old files if needed
+    [utils.silentremove(filename) for filename in [
+      os.path.join(dn, 'namelist.wps') for dn in [coarse_namelist_dir,
+                                                  fine_namelist_dir]]]
+    # write namelists
     self.nml_coarse.write(os.path.join(coarse_namelist_dir,
                                            'namelist.wps'))
     self.nml_fine.write(os.path.join(fine_namelist_dir,
