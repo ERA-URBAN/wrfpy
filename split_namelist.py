@@ -64,10 +64,8 @@ class split_nml_shared(config):
     special_cases1 = ['parent_grid_ratio', 'i_parent_start', 'j_parent_start',
                      'parent_time_step_ratio']
     special_cases2 = ['grid_id', 'parent_id']
-    print self.nml['metgrid'].keys()
     for section in self.nml.keys():
       for key in self.nml[section].keys():
-        print key
         if isinstance(self.nml[section][key], list):
           if key in special_cases1:
             if len(self.nml[section][key]) > 2:
@@ -78,8 +76,8 @@ class split_nml_shared(config):
           elif key in special_cases2:
             self.nml_fine[section][key] = self.nml[section][key][:-1]
           elif key not in ['eta_levels']:  # don't modify these keys
-            # use only first item from list
-            self.nml_fine[section][key] = self.nml[section][key][0]
+            # start from second item in list
+            self.nml_fine[section][key] = self.nml[section][key][1:]
         elif key=='time_step':
           self.nml_fine[section][key] = int(
             float(self.nml[section][key]) / self.nml['domains'][
@@ -90,13 +88,11 @@ class split_nml_shared(config):
 
 
 
-class split_nml_wrf(split_nml_shared):
+class split_nml_wrf(split_nml_shared, config):
   def __init__(self):
-    split_nml_shared.__init__(self)
-    split_nml_shared.read_namelist(wrf_namelist)  # TODO: define wrf_namelist
-    split_nml_shared.create_namelist_copies()
-    split_nml_shared.modify_coarse_namelist()
-    split_nml_shared.modify_fine_namelist()
+    config.__init__(self)  # load config
+    wrf_namelist = self.config['options_wrf']['namelist.input']
+    split_nml_shared.__init__(self, wrf_namelist)
     self._save_namelists()
 
 
@@ -105,12 +101,23 @@ class split_nml_wrf(split_nml_shared):
     write coarse and fine WRF namelist.input to the respective run directories
     as namelist.forecast
     '''
-    coarse_namelist_dir = self.config['filesystem']['wrf_run_dir'] + '_coarse'
-    fine_namelist_dir = self.config['filesystem']['wrf_run_dir'] + '_fine'
+    # define namelist directories
+    coarse_namelist_dir = os.path.join(self.config['filesystem']['work_dir'],
+                                       'wrf_coarse')
+    fine_namelist_dir = os.path.join(self.config['filesystem']['work_dir'],
+                                       'wrf_fine')
+    # create directories
+    [utils._create_directory(directory) for directory in [coarse_namelist_dir,
+                                                          fine_namelist_dir]]
+    # remove old files if needed
+    [utils.silentremove(filename) for filename in [
+      os.path.join(dn, 'namelist.forecast') for dn in [coarse_namelist_dir,
+                                                       fine_namelist_dir]]]
+    # write namelists
     self.nml_coarse.write(os.path.join(coarse_namelist_dir,
-                                       'namelist.forecast'))
+                                           'namelist.forecast'))
     self.nml_fine.write(os.path.join(fine_namelist_dir,
-                                     'namelist.forecast'))
+                                         'namelist.forecast'))
 
 
 
@@ -198,3 +205,4 @@ class split_nml_wps(split_nml_shared, config):
 
 if __name__=="__main__":
   split_nml_wps()
+  split_nml_wrf()
