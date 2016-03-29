@@ -38,8 +38,8 @@ class config:
     create empty json config file
     '''
     # define keys
-    keys_dir = ['wrf_dir', 'wrf_run_dir', 'wrfda_dir', 'upp_dir', 'wps_dir'
-                  'archive_dir', 'boundary_dir', 'upp_archive_dir', 'work_dir']
+    keys_dir = ['wrf_dir', 'wrf_run_dir', 'wrfda_dir', 'upp_dir', 'wps_dir',
+                'archive_dir', 'boundary_dir', 'upp_archive_dir', 'work_dir']
     keys_wrf = ['namelist.input']
     keys_upp = ['upp', 'upp_interval']
     keys_wrfda = ['wrfda', 'wrfda_type']
@@ -178,14 +178,14 @@ class config:
       raise IOError(message)
     # boundary interval should be an int number of hours
     assert isinstance(self.config['options_general']['boundary_interval'],
-                        int), ('boundary_interval should be given as an
-                               integer in %s' %self.configfile)
+                        int), ('boundary_interval should be given as an '
+                               'integer in %s' %self.configfile)
     # boundary interval should not be larger than time between start_date
     # and end_date
     assert ((self.config['options_general']['boundary_interval']*3600) < (
       end_date - start_date).total_seconds()), (
-        'boundary interval is larger than time between start_date and 
-        end_date')
+        'boundary interval is larger than time between start_date and ' 
+        'end_date')
 
 
   def _check_wps(self):
