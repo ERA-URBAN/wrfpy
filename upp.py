@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 '''
 description:    Unified Post Precession (UPP) part of wrfpy

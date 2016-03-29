@@ -193,16 +193,4 @@ class split_nml_wps(split_nml_shared, config):
     [utils._create_directory(directory) for directory in [coarse_namelist_dir,
                                                           fine_namelist_dir]]
     # remove old files if needed
-    [utils.silentremove(filename) for filename in [
-      os.path.join(dn, 'namelist.wps') for dn in [coarse_namelist_dir,
-                                                  fine_namelist_dir]]]
-    # write namelists
-    self.nml_coarse.write(os.path.join(coarse_namelist_dir,
-                                           'namelist.wps'))
-    self.nml_fine.write(os.path.join(fine_namelist_dir,
-                                         'namelist.wps'))
-
-
-if __name__=="__main__":
-  split_nml_wps()
-  split_nml_wrf()
+    [utils.silentremove(filename) for filename i

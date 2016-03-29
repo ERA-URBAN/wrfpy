@@ -91,6 +91,10 @@ class database:
                            (timestep TIMESTAMP, pass BOOLEAN)''')
     self.cursor.execute('''CREATE TABLE finished
                            (timestep TIMESTAMP, pass BOOLEAN)''')
+    self.cursor.execute('''CREATE TABLE tasks
+                           (timestep TIMESTAMP, task1 BOOLEAN, task2 BOOLEAN,
+                           task3 BOOLEAN)''')
+
 
   def _add_timestep_to_db(self, timestep):
     '''
@@ -106,12 +110,24 @@ class database:
     logger.info('Adding timestep %s to database' %timestep)
     self.cursor.execute('''INSERT INTO steps VALUES (?,?)''',
                         (timestep, False))
+    self.cursor.execute('''INSERT INTO tasks VALUES (?,?,?,?)''',
+                        (timestep, False, False, False))
     self.connection.commit()
+
+
+  def _add_steps_to_db(self):
+    '''
+    Each interval consists of a number of steps, add the steps to the
+    database
+    '''
+    pass
 
 
   def create_list_datetimes(self, start_date, end_date, nhours):
     '''
-    description
+    Create a list of timesteps between start_date and end_date with a 
+    time interval of nhours.
+    Add timesteps to database
     '''
     from datetime import datetime
     from datetime import timedelta
