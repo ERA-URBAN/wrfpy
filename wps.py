@@ -84,6 +84,8 @@ class wps(config):
     '''
     # get list of files to link
     filelist = glob.glob(os.path.join(self.boundary_dir, '*'))
+    # make sure we only have files
+    filelist = [fl for fl in filelist if os.path.isfile(fl)]
     if len(filelist) == 0:
       message = 'linking boundary files failed, no files found to link'
       logger.error(message)
@@ -206,6 +208,6 @@ class wps(config):
 if __name__ == "__main__":
   logger = utils.start_logging('test.log')
   boundary_dir = '/home/WUR/haren009/sources/upp_archive/'
-  datestart= datetime(2014,07,16,00)
-  dateend = datetime(2014,07,17,00)
+  datestart= datetime(2014,07,27,00)
+  dateend = datetime(2014,07,27,06)
   runwps = wps(boundary_dir, datestart, dateend)
