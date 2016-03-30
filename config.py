@@ -46,7 +46,8 @@ class config:
     keys_general = ['date_start', 'date_end', 'boundary_interval', 'ref_lon',
                     'ref_lat', 'run_hours']
     keys_wps = ['namelist.wps']
-    keys_slurm = ['slurm_real.exe', 'slurm_wrf.exe']
+    keys_slurm = ['slurm_real.exe', 'slurm_wrf.exe', 'slurm_ungrib.exe',
+                  'slurm_metgrid.exe', 'slurm_geogrid.exe']
 
     # create dictionaries
     config_dir = {key: '' for key in keys_dir}
