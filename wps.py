@@ -164,7 +164,7 @@ class wps(config):
     '''
     run geogrid.exe (locally or using slurm script defined in config.json)
     '''
-    if len(self.config['slurm']['slurm_geogrid.exe']):
+    if len(self.config['options_slurm']['slurm_geogrid.exe']):
       geogrid_slurm = self.config['slurm']['slurm_geogrid.exe']
       utils.check_file_exists(geogrid_slurm)
       geogrid_command = 'sbatch ' + geogrid_slurm
@@ -184,7 +184,7 @@ class wps(config):
     '''
     run ungrib.exe (locally or using slurm script defined in config.json)
     '''
-    if len(self.config['slurm']['slurm_ungrib.exe']):
+    if len(self.config['options_slurm']['slurm_ungrib.exe']):
       ungrib_slurm = self.config['slurm']['slurm_ungrib.exe']
       utils.check_file_exists(ungrib_slurm)
       ungrib_command = 'sbatch ' + ungrib_slurm
@@ -204,7 +204,7 @@ class wps(config):
     '''
     run metgrid.exe (locally or using slurm script defined in config.json)
     '''
-    if len(self.config['slurm']['slurm_metgrid.exe']):
+    if len(self.config['options_slurm']['slurm_metgrid.exe']):
       metgrid_slurm = self.config['slurm']['slurm_metgrid.exe']
       utils.check_file_exists(metgrid_slurm)
       metgrid_command = 'sbatch ' + metgrid_slurm

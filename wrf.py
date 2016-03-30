@@ -88,7 +88,7 @@ class run_wrf(config):
     run wrf real.exe
     '''
     # check if slurm_real.exe is defined
-    if len(self.config['slurm']['slurm_real.exe']):
+    if len(self.config['options_slurm']['slurm_real.exe']):
       # TODO: copy slurm script to wrf run dir (test if needed?)
       real_slurm = self.config['slurm']['slurm_real.exe']
       utils.check_file_exists(real_slurm)
@@ -110,7 +110,7 @@ class run_wrf(config):
     run wrf.exe
     '''
     # check if slurm_wrf.exe is defined
-    if len(self.config['slurm']['slurm_wrf.exe']):
+    if len(self.config['options_slurm']['slurm_wrf.exe']):
       wrf_slurm = self.config['slurm']['slurm_wrf.exe']
       utils.check_file_exists(wrf_slurm)
       wrf_command = 'sbatch ' + wrf_slurm
