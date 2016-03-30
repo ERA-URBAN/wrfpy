@@ -32,10 +32,10 @@ class wps(config):
     self._clean_boundaries_wps()  # clean leftover boundaries
     self._prepare_namelist(datestart, dateend)
     self._link_boundary_files()
-    self._run_geogrid()
     self._link_vtable()
-    self._run_ungrib()
-    self._run_metgrid()
+    geogrid_jid = self._run_geogrid()
+    ungrib_jid = self._run_ungrib(geogrid_jid)
+    metgrid_jid = self._run_metgrid(ungrib_jid)
 
 
   def _clean_boundaries_wps(self):
@@ -158,66 +158,113 @@ class wps(config):
       utils._create_directory(os.path.join(self.wps_workdir, 'metgrid'))
       os.symlink(metgridtbl, os.path.join(self.wps_workdir, 'metgrid',
                                           'METGRID.TBL'))
+    # geogrid
+
+    utils._create_directory(os.path.join(self.wps_workdir, 'geogrid'))
 
 
-  def _run_geogrid(self):
+  def _run_geogrid(self, j_id=None):
     '''
     run geogrid.exe (locally or using slurm script defined in config.json)
     '''
     if len(self.config['options_slurm']['slurm_geogrid.exe']):
-      geogrid_slurm = self.config['slurm']['slurm_geogrid.exe']
-      utils.check_file_exists(geogrid_slurm)
-      geogrid_command = 'sbatch ' + geogrid_slurm
+      if j_id:
+        mid = "--dependency=afterok:%d" %j_id
+        geogrid_command = ['sbatch', mid, self.config['options_slurm']['slurm_geogrid.exe']]
+      else:
+        geogrid_command = ['sbatch', self.config['options_slurm']['slurm_geogrid.exe']]
+      utils.check_file_exists(geogrid_command[1])
+      utils.silentremove(os.path.join(self.wps_workdir, 'geogrid', 'geogrid.exe'))
+      os.symlink(os.path.join(self.config['filesystem']['wps_dir'],'geogrid','geogrid.exe'),
+                 os.path.join(self.wps_workdir, 'geogrid', 'geogrid.exe'))
+      try:
+        res = subprocess.check_output(geogrid_command, cwd=self.wps_workdir,
+                                      stderr=utils.devnull())
+        j_id = int(res.split()[-1])  # slurm job-id
+      except subprocess.CalledProcessError:
+        logger.error('Metgrid failed %s:' %geogrid_command)
+        raise  # re-raise exception
+      return j_id  # return slurm job-id
     else:
       geogrid_command = os.path.join(self.config['filesystem']['wps_dir'],
                                     'geogrid', 'geogrid.exe')
       utils.check_file_exists(geogrid_command)
-    try:
-      subprocess.check_call(geogrid_command, cwd=self.wps_workdir,
-                            stdout=utils.devnull(), stderr=utils.devnull())
-    except CalledProcessError:
-      logger.error('Geogrid failed %s:' %geogrid_command)
-      raise  # re-raise exception
+      try:
+        subprocess.check_call(geogrid_command, cwd=self.wps_workdir,
+                              stdout=utils.devnull(), stderr=utils.devnull())
+      except subprocess.CalledProcessError:
+        logger.error('Geogrid failed %s:' %geogrid_command)
+        raise  # re-raise exception
 
 
-  def _run_ungrib(self):
+  def _run_ungrib(self, j_id=None):
     '''
     run ungrib.exe (locally or using slurm script defined in config.json)
     '''
     if len(self.config['options_slurm']['slurm_ungrib.exe']):
-      ungrib_slurm = self.config['slurm']['slurm_ungrib.exe']
-      utils.check_file_exists(ungrib_slurm)
-      ungrib_command = 'sbatch ' + ungrib_slurm
+      if j_id:
+        mid = "--dependency=afterok:%d" %j_id
+        ungrib_command = ['sbatch', mid, self.config['options_slurm']['slurm_ungrib.exe']]
+      else:
+        ungrib_command = ['sbatch', self.config['options_slurm']['slurm_ungrib.exe']]
+      utils.check_file_exists(ungrib_command[-1])
+      utils.silentremove(os.path.join(self.wps_workdir, 'ungrib', 'ungrib.exe'))
+      if not os.path.isdir(os.path.join(self.wps_workdir, 'ungrib')):
+        utils._create_directory(os.path.join(self.wps_workdir, 'ungrib'))
+      os.symlink(os.path.join(self.config['filesystem']['wps_dir'],'ungrib','ungrib.exe'),
+                 os.path.join(self.wps_workdir, 'ungrib', 'ungrib.exe'))
+      try:
+        res = subprocess.check_output(ungrib_command, cwd=self.wps_workdir,
+                                      stderr=utils.devnull())
+        j_id = int(res.split()[-1])  # slurm job-id
+      except subprocess.CalledProcessError:
+        logger.error('Ungrib failed %s:' %ungrib_command)
+        raise  # re-raise exception
+      return j_id  # return slurm job-id
     else:
       ungrib_command = os.path.join(self.config['filesystem']['wps_dir'],
                               'ungrib', 'ungrib.exe')
       utils.check_file_exists(ungrib_command)
-    try:
-      subprocess.check_call(ungrib_command, cwd=self.wps_workdir,
-                            stdout=utils.devnull(), stderr=utils.devnull())
-    except CalledProcessError:
-      logger.error('Ungrib failed %s:' %ungrib_command)
-      raise  # re-raise exception
+      try:
+        subprocess.check_call(ungrib_command, cwd=self.wps_workdir,
+                              stdout=utils.devnull(), stderr=utils.devnull())
+      except subprocess.CalledProcessError:
+        logger.error('Ungrib failed %s:' %ungrib_command)
+        raise  # re-raise exception
 
 
-  def _run_metgrid(self):
+  def _run_metgrid(self, j_id=None):
     '''
     run metgrid.exe (locally or using slurm script defined in config.json)
     '''
     if len(self.config['options_slurm']['slurm_metgrid.exe']):
-      metgrid_slurm = self.config['slurm']['slurm_metgrid.exe']
-      utils.check_file_exists(metgrid_slurm)
-      metgrid_command = 'sbatch ' + metgrid_slurm
+      if j_id:
+        mid = "--dependency=afterok:%d" %j_id
+        metgrid_command = ['sbatch', mid, self.config['options_slurm']['slurm_metgrid.exe']]
+      else:
+        metgrid_command = ['sbatch', self.config['options_slurm']['slurm_metgrid.exe']]
+      utils.check_file_exists(metgrid_command[-1])
+      utils.silentremove(os.path.join(self.wps_workdir, 'metgrid', 'metgrid.exe'))
+      os.symlink(os.path.join(self.config['filesystem']['wps_dir'],'metgrid','metgrid.exe'),
+                 os.path.join(self.wps_workdir, 'metgrid', 'metgrid.exe'))
+      try:
+        res = subprocess.check_output(metgrid_command, cwd=self.wps_workdir,
+                                      stderr=utils.devnull())
+        j_id = int(res.split()[-1])  # slurm job-id
+      except subprocess.CalledProcessError:
+        logger.error('Metgrid failed %s:' %metgrid_command)
+        raise  # re-raise exception
+      return j_id  # return slurm job-id
     else:
       metgrid_command = os.path.join(self.config['filesystem']['wps_dir'],
                               'metgrid', 'metgrid.exe')
       utils.check_file_exists(metgrid_command)
-    try:
-      subprocess.check_call(metgrid_command, cwd=self.wps_workdir,
-                            stdout=utils.devnull(), stderr=utils.devnull())
-    except CalledProcessError:
-      logger.error('Metgrid failed %s:' %metgrid_command)
-      raise  # re-raise exception
+      try:
+        subprocess.check_call(metgrid_command, cwd=self.wps_workdir,
+                              stdout=utils.devnull(), stderr=utils.devnull())
+      except subprocess.CalledProcessError:
+        logger.error('Metgrid failed %s:' %metgrid_command)
+        raise  # re-raise exception
 
 
 if __name__ == "__main__":
