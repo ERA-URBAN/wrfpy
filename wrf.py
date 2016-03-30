@@ -83,51 +83,78 @@ class run_wrf(config):
       self.config['filesystem']['wrf_run_dir'], 'namelist.input'))
 
 
-  def run_real(self):
+  def run_real(self, j_id=None):
     '''
     run wrf real.exe
     '''
     # check if slurm_real.exe is defined
     if len(self.config['options_slurm']['slurm_real.exe']):
-      # TODO: copy slurm script to wrf run dir (test if needed?)
-      real_slurm = self.config['slurm']['slurm_real.exe']
-      utils.check_file_exists(real_slurm)
-      real_command = 'sbatch ' + real_slurm
+      if j_id:
+        mid = "--dependency=afterok:%d" %j_id
+        real_command = ['sbatch', mid, self.config['options_slurm']['slurm_real.exe']]
+      else:
+        real_command = ['sbatch', self.config['options_slurm']['slurm_real.exe']]
+      utils.check_file_exists(real_command[-1])
+      utils.silentremove(os.path.join(self.wrf_rundir, 'real.exe'))
+      os.symlink(os.path.join(self.config['filesystem']['wrf_dir'],'main','real.exe'),
+                 os.path.join(self.wrf_rundir, 'real.exe'))
+      try:
+        res = subprocess.check_output(real_command, cwd=self.wrf_rundir,
+                                      stderr=utils.devnull())
+        j_id = int(res.split()[-1])  # slurm job-id
+      except subprocess.CalledProcessError:
+        logger.error('Real failed %s:' %real_command)
+        raise  # re-raise exception
+      return j_id  # return slurm job-id
     else:  # run locally
       real_command = os.path.join(self.config['filesystem']['wrf_dir'],
                               'main', 'real.exe')
       utils.check_file_exists(real_command)
-    try:
-      subprocess.check_call(real_command, cwd=self.wrf_rundir,
-                            stdout=utils.devnull(), stderr=utils.devnull())
-    except CalledProcessError:
-      logger.error('real.exe failed %s:' %real_command)
-      raise  # re-raise exception
+      try:
+        subprocess.check_call(real_command, cwd=self.wrf_rundir,
+                              stdout=utils.devnull(), stderr=utils.devnull())
+      except subprocess.CalledProcessError:
+        logger.error('real.exe failed %s:' %real_command)
+        raise  # re-raise exception
 
 
-  def run_wrf(self):
+  def run_wrf(self, j_id=None):
     '''
     run wrf.exe
     '''
     # check if slurm_wrf.exe is defined
     if len(self.config['options_slurm']['slurm_wrf.exe']):
-      wrf_slurm = self.config['slurm']['slurm_wrf.exe']
-      utils.check_file_exists(wrf_slurm)
-      wrf_command = 'sbatch ' + wrf_slurm
+      if j_id:
+        mid = "--dependency=afterok:%d" %j_id
+        wrf_command = ['sbatch', mid, self.config['options_slurm']['slurm_wrf.exe']]
+      else:
+        wrf_command = ['sbatch', self.config['options_slurm']['slurm_wrf.exe']]
+      utils.check_file_exists(wrf_command[-1])
+      utils.silentremove(os.path.join(self.wrf_rundir, 'wrf.exe'))
+      os.symlink(os.path.join(self.config['filesystem']['wrf_dir'],'main','wrf.exe'),
+                 os.path.join(self.wrf_rundir, 'wrf.exe'))
+      try:
+        res = subprocess.check_output(wrf_command, cwd=self.wrf_rundir,
+                                      stderr=utils.devnull())
+        j_id = int(res.split()[-1])  # slurm job-id
+      except subprocess.CalledProcessError:
+        logger.error('Wrf failed %s:' %wrf_command)
+        raise  # re-raise exception
+      return j_id  # return slurm job-id
     else:  # run locally
       wrf_command = os.path.join(self.config['filesystem']['wrf_dir'],
                               'main', 'wrf.exe')
       utils.check_file_exists(wrf_command)
-    try:
-      subprocess.check_call(wrf_command, cwd=self.wrf_rundir,
-                            stdout=utils.devnull(), stderr=utils.devnull())
-    except CalledProcessError:
-      logger.error('wrf.exe failed %s:' %real_command)
-      raise  # re-raise exception
+      try:
+        subprocess.check_call(wrf_command, cwd=self.wrf_rundir,
+                              stdout=utils.devnull(), stderr=utils.devnull())
+      except subprocess.CalledProcessError:
+        logger.error('wrf.exe failed %s:' %wrf_command)
+        raise  # re-raise exception
 
 
 if __name__=="__main__":
   datestart= datetime(2014,07,16,00)
   dateend = datetime(2014,07,17,00)  
   wrf = run_wrf(datestart, dateend)
-  wrf.run_real()
+  real_jid = wrf.run_real()
