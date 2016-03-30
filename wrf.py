@@ -90,17 +90,19 @@ class run_wrf(config):
     # check if slurm_real.exe is defined
     if len(self.config['slurm']['slurm_real.exe']):
       # TODO: copy slurm script to wrf run dir (test if needed?)
-      real_command = self.config['slurm']['slurm_real.exe']
+      real_slurm = self.config['slurm']['slurm_real.exe']
+      utils.check_file_exists(real_slurm)
+      real_command = 'sbatch ' + real_slurm
     else:  # run locally
       real_command = os.path.join(self.config['filesystem']['wrf_dir'],
                               'main', 'real.exe')
       utils.check_file_exists(real_command)
-      try:
-        subprocess.check_call(real_command, cwd=self.wrf_rundir,
-                              stdout=utils.devnull(), stderr=utils.devnull())
-      except CalledProcessError:
-        logger.error('real.exe failed %s:' %real_command)
-        raise  # re-raise exception
+    try:
+      subprocess.check_call(real_command, cwd=self.wrf_rundir,
+                            stdout=utils.devnull(), stderr=utils.devnull())
+    except CalledProcessError:
+      logger.error('real.exe failed %s:' %real_command)
+      raise  # re-raise exception
 
 
   def run_wrf(self):
@@ -109,18 +111,19 @@ class run_wrf(config):
     '''
     # check if slurm_wrf.exe is defined
     if len(self.config['slurm']['slurm_wrf.exe']):
-      # TODO: copy slurm script to wrf run dir (test if needed?)
-      wrf_command = self.config['slurm']['slurm_wrf.exe']
+      wrf_slurm = self.config['slurm']['slurm_wrf.exe']
+      utils.check_file_exists(wrf_slurm)
+      wrf_command = 'sbatch ' + wrf_slurm
     else:  # run locally
-      real_command = os.path.join(self.config['filesystem']['wrf_dir'],
+      wrf_command = os.path.join(self.config['filesystem']['wrf_dir'],
                               'main', 'wrf.exe')
-      utils.check_file_exists(real_command)
-      try:
-        subprocess.check_call(real_command, cwd=self.wrf_rundir,
-                              stdout=utils.devnull(), stderr=utils.devnull())
-      except CalledProcessError:
-        logger.error('wrf.exe failed %s:' %real_command)
-        raise  # re-raise exception
+      utils.check_file_exists(wrf_command)
+    try:
+      subprocess.check_call(wrf_command, cwd=self.wrf_rundir,
+                            stdout=utils.devnull(), stderr=utils.devnull())
+    except CalledProcessError:
+      logger.error('wrf.exe failed %s:' %real_command)
+      raise  # re-raise exception
 
 
 if __name__=="__main__":

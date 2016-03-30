@@ -162,11 +162,16 @@ class wps(config):
 
   def _run_geogrid(self):
     '''
-    run geogrid.exe (run it on the login node for now)
+    run geogrid.exe (locally or using slurm script defined in config.json)
     '''
-    geogrid_command = os.path.join(self.config['filesystem']['wps_dir'],
-                                   'geogrid', 'geogrid.exe')
-    utils.check_file_exists(geogrid_command)
+    if len(self.config['slurm']['slurm_geogrid.exe']):
+      geogrid_slurm = self.config['slurm']['slurm_geogrid.exe']
+      utils.check_file_exists(geogrid_slurm)
+      geogrid_command = 'sbatch ' + geogrid_slurm
+    else:
+      geogrid_command = os.path.join(self.config['filesystem']['wps_dir'],
+                                    'geogrid', 'geogrid.exe')
+      utils.check_file_exists(geogrid_command)
     try:
       subprocess.check_call(geogrid_command, cwd=self.wps_workdir,
                             stdout=utils.devnull(), stderr=utils.devnull())
@@ -177,11 +182,16 @@ class wps(config):
 
   def _run_ungrib(self):
     '''
-    run ungrib.exe (run it on the login node for now)
+    run ungrib.exe (locally or using slurm script defined in config.json)
     '''
-    ungrib_command = os.path.join(self.config['filesystem']['wps_dir'],
-                            'ungrib', 'ungrib.exe')
-    utils.check_file_exists(ungrib_command)
+    if len(self.config['slurm']['slurm_ungrib.exe']):
+      ungrib_slurm = self.config['slurm']['slurm_ungrib.exe']
+      utils.check_file_exists(ungrib_slurm)
+      ungrib_command = 'sbatch ' + ungrib_slurm
+    else:
+      ungrib_command = os.path.join(self.config['filesystem']['wps_dir'],
+                              'ungrib', 'ungrib.exe')
+      utils.check_file_exists(ungrib_command)
     try:
       subprocess.check_call(ungrib_command, cwd=self.wps_workdir,
                             stdout=utils.devnull(), stderr=utils.devnull())
@@ -192,11 +202,16 @@ class wps(config):
 
   def _run_metgrid(self):
     '''
-    run metgrid.exe (run it on the login node for now)
+    run metgrid.exe (locally or using slurm script defined in config.json)
     '''
-    metgrid_command = os.path.join(self.config['filesystem']['wps_dir'],
-                            'metgrid', 'metgrid.exe')
-    utils.check_file_exists(metgrid_command)
+    if len(self.config['slurm']['slurm_metgrid.exe']):
+      metgrid_slurm = self.config['slurm']['slurm_metgrid.exe']
+      utils.check_file_exists(metgrid_slurm)
+      metgrid_command = 'sbatch ' + metgrid_slurm
+    else:
+      metgrid_command = os.path.join(self.config['filesystem']['wps_dir'],
+                              'metgrid', 'metgrid.exe')
+      utils.check_file_exists(metgrid_command)
     try:
       subprocess.check_call(metgrid_command, cwd=self.wps_workdir,
                             stdout=utils.devnull(), stderr=utils.devnull())
