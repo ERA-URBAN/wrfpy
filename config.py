@@ -16,8 +16,8 @@ class config:
   description
   '''
   def __init__(self):
+    logger = utils.start_logging('test.log')
     home = os.path.expanduser("~")  # get users homedir
-    #self.configfile = os.path.join(home, 'wrfpy.config')
     self.configfile = os.path.join(home, 'config.json')
     logger.debug('Checking if configuration file exists: %s' %self.configfile)
     try:
@@ -262,7 +262,6 @@ class config:
 if __name__=="__main__":
   import sys
   #sys.excepthook = utils.excepthook
-  logger = utils.start_logging('test.log')
   cf = config()
   cf._read_json()
   cf._check_config()
