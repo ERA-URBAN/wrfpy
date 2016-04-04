@@ -53,17 +53,6 @@ def silentremove(filename):
         raise # re-raise exception if a different error occured
 
 
-def get_domains():
-  '''
-  Get domain information from WRF namelist in WRF rundir
-  '''
-  from namelist import namelist_get
-  wrf_namelist = os.path.join(env.RUNDIR, 'namelist.input')
-  # get domain information from namelist
-  domains = namelist_get(wrf_namelist, 'domains:grid_id')  # use max_dom?
-  return domains
-
-
 def return_validate(date_text, format='%Y-%m-%d_%H'):
   '''
   validate date_text and return datetime.datetime object
