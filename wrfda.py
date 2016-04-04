@@ -10,8 +10,9 @@ import os
 import f90nml
 import subprocess
 import shutil
-from utils import *
-
+import utils
+from config import config
+from datetime import datetime
 
 class wrfda(config):
   '''
@@ -20,8 +21,19 @@ class wrfda(config):
   def __init__(self, datestart):
     config.__init__(self)  # load config
     self.rundir = self.config['filesystem']['wrf_run_dir']
-    self.self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'],
-                                      'wrfda'))
+    self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'],
+                                      'wrfda')
+    print "preprocess"
+    self.preprocess(datestart)
+    print "updatebc lower"
+    self.updatebc('lower', datestart)
+    print "prepare"
+    self.prepare()
+    print "run wrfda"
+    self.run()
+    print "udpatebc lateral"
+    self.updatebc('lateral', datestart)
+
   def preprocess(self, datestart):
     from shutil import copyfile
     from datetime import timedelta
@@ -41,8 +53,8 @@ class wrfda(config):
       self.config['filesystem']['obs_filename']), os.path.join(
         obsproc_dir, self.config['filesystem']['obs_filename']))
     # sync obsproc namelist variables with wrf namelist.input
-    obsproc_nml['record1']['obs_gts_filename'] = self.config[
-      'filesystem']['obs_filename']
+    obsproc_nml['record1']['obs_gts_filename'] = str(self.config[
+      'filesystem']['obs_filename'])  # convert unicode str to regular str
     obsproc_nml['record8']['nesti'] = wrf_nml['domains']['i_parent_start']
     obsproc_nml['record8']['nestj'] = wrf_nml['domains']['j_parent_start']
     obsproc_nml['record8']['nestix'] = wrf_nml['domains']['e_we']
@@ -61,19 +73,22 @@ class wrfda(config):
     obsproc_nml['record2']['time_window_max'] = datetime.strftime(
       datestart + timedelta(minutes=15), '%Y-%m-%d_%H:%M:%S')
     # save obsproc_nml
+    utils.silentremove(os.path.join(obsproc_dir, 'namelist.obsproc'))
     obsproc_nml.write(os.path.join(obsproc_dir, 'namelist.obsproc'))
     # run obsproc.exe
     subprocess.check_call(os.path.join(obsproc_dir, 'obsproc.exe'))
     # TODO: check if output is file is created and no errors have occurred
 
-  def prepare():
+  def prepare(self):
+    obsproc_dir = os.path.join(self.config['filesystem']['wrfda_dir'],
+                               'var/obsproc')
     if os.path.exists(self.wrfda_workdir):
       shutil.rmtree(self.wrfda_workdir)  # remove self.wrfda_workdir
     utils._create_directory(self.wrfda_workdir)  # create empty self.wrfda_workdir
     # read wrfda and obsproc namelists
     wrfda_namelist = os.path.join(self.config['filesystem']['wrfda_dir'],
                                   'var/test/tutorial/namelist.input')
-    wrdfa_nml = f90nml.read(os.path.join(self.wrfda_workdir, namelist.input))
+    wrfda_nml = f90nml.read(wrfda_namelist)
     obsproc_nml = f90nml.read(os.path.join(obsproc_dir, 'namelist.obsproc'))
     # sync wrfda namelist with obsproc namelist
     wrfda_nml['wrfvar18']['analysis_date'] = obsproc_nml['record2']['time_analysis']
@@ -81,10 +96,16 @@ class wrfda(config):
     wrfda_nml['wrfvar22']['time_window_max'] = obsproc_nml['record2']['time_window_max']
     wrfda_nml['wrfvar7']['cv_options'] =  3
     # save wrfda namelist
-    wrfda_nml.write(os.path.join(self.wrfda_workdir, namelist.input))
+    utils.silentremove(os.path.join(self.wrfda_workdir, 'namelist.input'))
+    wrfda_nml.write(os.path.join(self.wrfda_workdir, 'namelist.input'))
+    # symlink da_wrfvar.exe
+    os.symlink(os.path.join(
+      self.config['filesystem']['wrfda_dir'],'var/da/da_wrfvar.exe'
+      ), os.path.join(self.wrfda_workdir, 'da_wrfvar.exe'))
 
-  def create_parame(parame_type):
-    filename = os.path.join(self.wrfda_workdir, parame.in)
+  def create_parame(self, parame_type):
+    filename = os.path.join(self.wrfda_workdir, 'parame.in')
+    utils.silentremove(filename)
     # add configuration to parame.in file
     parame = open(filename, 'w')  # open file
     if parame_type == 'lower':
@@ -121,9 +142,9 @@ class wrfda(config):
       ## end config file lateral boundary conditions
     parame.close()  # close file
 
-  def run():
+  def run(self):
     # read WRFDA namelist
-    wrdfa_nml = f90nml.read(os.path.join(self.wrfda_workdir, namelist.input))
+    wrfda_nml = f90nml.read(os.path.join(self.wrfda_workdir, 'namelist.input'))
     # read WRF namelist in WRF work_dir
     wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
                                        'namelist.input'))
@@ -132,9 +153,9 @@ class wrfda(config):
     # run WRFDA for all domains
     for domain in range(1, max_dom+1):
       # silent remove file if exists
-      silentremove(os.path.join(self.wrfda_workdir, 'fg'))
+      utils.silentremove(os.path.join(self.wrfda_workdir, 'fg'))
       # create symlink of wrfinput_d0${domain}
-      os.symlink(os.path.join(self.rundir, 'wrfinput_d0'domain),
+      os.symlink(os.path.join(self.rundir, 'wrfinput_d0' + str(domain)),
                 os.path.join(self.wrfda_workdir, 'fg'))
       # set domain specific information in namelist
       for var in ['e_we', 'e_sn', 'e_vert', 'dx', 'dy']:
@@ -143,29 +164,32 @@ class wrfda(config):
         # set domain specific variable in WRDFA_WORKDIR/namelist.input
         wrfda_nml['domains'][var] = var_value[domain - 1]
       # save changes to wrfda_nml
-      wrfda_nml.write(os.path.join(self.wrfda_workdir, namelist.input))
+      utils.silentremove(os.path.join(self.wrfda_workdir, 'namelist.input'))
+      wrfda_nml.write(os.path.join(self.wrfda_workdir, 'namelist.input'))
       # run da_wrfvar.exe for each domain
-      logfile = os.path.join(self.wrfda_workdir, 'log.wrfda_d'domain)
-      subprocess.check_call([os.path.join(self.wrfda_workdir, 'da_wrfvar.exe'),
-                            '>&!', logfile])
+      logfile = os.path.join(self.wrfda_workdir, 'log.wrfda_d' + str(domain))
+      subprocess.check_call([os.path.join(self.wrfda_workdir, 'da_wrfvar.exe'), '>&!', logfile],
+                            cwd=self.wrfda_workdir, stdout=utils.devnull(), stderr=utils.devnull())
       # copy wrfvar_output_d0${domain} to ${RUNDIR}/wrfinput_d0${domain}
-      silentremove(os.path.join(self.rundir ,'wrfinput_d0'domain)
+      utils.silentremove(os.path.join(self.rundir ,'wrfinput_d0' + str(domain)))
       shutil.copyfile(os.path.join(self.wrfda_workdir, 'wrfvar_output'),
-                      os.path.join(self.rundir, 'wrfinput_d0'domain))
+                      os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
       # cleanup wrfvar_output
-      silentremove(os.path.join(self.wrfda_workdir, 'wrfvar_output'))
+      utils.silentremove(os.path.join(self.wrfda_workdir, 'wrfvar_output'))
 
-  def updatebc(boundary_type, datestart):
+  def updatebc(self, boundary_type, datestart):
     # general functionality independent of boundary type in parame.in
     if os.path.exists(self.wrfda_workdir):
       shutil.rmtree(self.wrfda_workdir)  # remove self.wrfda_workdir
-    utils._create_directory(self.wrfda_workdir)
+    utils._create_directory(os.path.join(self.wrfda_workdir, 'var', 'da'))
+    wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
+                                       'namelist.input'))
     # define parame.in file
-    create_parame(boundary_type)
+    self.create_parame(boundary_type)
     # symlink da_update_bc.exe
     os.symlink(os.path.join(
       self.config['filesystem']['wrfda_dir'],'var/da/da_update_bc.exe'
-      ), os.path.join(self.wrfda_workdir, 'var/da/da_update_bc.exe'))
+      ), os.path.join(self.wrfda_workdir, 'da_update_bc.exe'))
     # copy wrfbdy_d01 file (lateral boundaries) to WRFDA_WORKDIR
     shutil.copyfile(os.path.join(self.rundir, 'wrfbdy_d01'),
                     os.path.join(self.wrfda_workdir, 'wrfbdy_d01'))
@@ -175,36 +199,43 @@ class wrfda(config):
       max_dom = wrf_nml['domains']['max_dom']
       for domain in range(1, max_dom + 1):
         # copy first guess (wrfout in wrfinput format) for WRFDA
-        first_guess = os.path.join(self.rundir, 'wrfvar_input_d0' + domain +
+        first_guess = os.path.join(self.rundir, 'wrfvar_input_d0' + str(domain) +
                                   '_' + datetime.strftime(datestart,
                                                           '%Y-%m-%d_%H:%M:%S'))
         try:
           shutil.copyfile(first_guess, os.path.join(self.wrfda_workdir, 'fg'))
         except Exception:
-          shutil.copyfile(os.path.join(self.rundir, 'wrfinput_d0' + domain),
+          shutil.copyfile(os.path.join(self.rundir, 'wrfinput_d0' + str(domain)),
                           os.path.join(self.wrfda_workdir, 'fg'))
         # set domain in parame.in
         parame = f90nml.read(os.path.join(self.wrfda_workdir, 'parame.in'))
         parame['control_param']['domain_id'] = domain
         # set wrf_input (IC from WPS and WRF real)
-        parame['control_param']['wrf_input'] = os.path.join(
-          self.rundir, 'wrfinput_d0' + domain))
+        parame['control_param']['wrf_input'] = str(os.path.join(
+          self.rundir, 'wrfinput_d0' + str(domain)))
         # save changes to parame.in file
+        utils.silentremove(os.path.join(self.wrfda_workdir, 'parame.in'))
         parame.write(os.path.join(self.wrfda_workdir, 'parame.in'))
         # run da_update_bc.exe
-        subprocess.check_call(os.path.join(self.wrfda_workdir, 'da_update_bc.exe'))
+        subprocess.check_call(os.path.join(self.wrfda_workdir, 'da_update_bc.exe'),
+                              cwd=self.wrfda_workdir,
+                              stdout=utils.devnull(), stderr=utils.devnull())
         # copy updated first guess to RUNDIR/wrfinput
-        silentremove(os.path.join(self.rundir, 'wrfinput_d0' + domain))
+        utils.silentremove(os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
         shutil.copyfile(os.path.join(self.wrfda_workdir, 'fg'),
-                        os.path.join(self.rundir, 'wrfinput_d0' + domain))
+                        os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
     elif boundary_type == 'lateral' :
       # run da_update_bc.exe
-      subprocess.check_call(os.path.join(self.wrfda_workdir, 'da_update_bc.exe'))
+      subprocess.check_call(os.path.join(self.wrfda_workdir, 'da_update_bc.exe'),
+                            cwd=self.wrfda_workdir,
+                            stdout=utils.devnull(), stderr=utils.devnull())
       # copy over updated lateral boundary conditions to RUNDIR
-      silentremove(os.path.join(self.rundir, 'wrfbdy_d01'))
+      utils.silentremove(os.path.join(self.rundir, 'wrfbdy_d01'))
       shutil.copyfile(os.path.join(self.wrfda_workdir, 'wrfbdy_d01'),
                       os.path.join(self.rundir, 'wrfbdy_d01'))
     else:
       raise Exception('unknown boundary type')
 
-
+if __name__ == "__main__":
+  datestart= datetime(2014,07,16,00)
+  wrf_da = wrfda(datestart)
