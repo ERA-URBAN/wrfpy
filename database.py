@@ -9,18 +9,18 @@ import sqlite3
 import utils
 import os
 import datetime
+from config import config
 
-class database:
+class database(config):
   '''
   description
   '''
   def __init__(self):
-    # set some config variables for now for testing purposes
-    global config
-    config = {}
-    config['dbase_dir'] = './'
-    config['dbase_name'] = 'wrfpy.db'
-    self.database = os.path.join(config['dbase_dir'], config['dbase_name'])
+    config.__init__(self)
+    self.config['dbase_dir'] = './'
+    self.config['dbase_name'] = 'wrfpy.db'
+    self.database = os.path.join(self.config['dbase_dir'],
+                                 self.config['dbase_name'])
 
   def _new_database(self):
     '''
@@ -169,15 +169,24 @@ class database:
     for i in [0,1,2,3]:
       self.cursor.execute("SELECT timestep FROM steps WHERE pass=(?)", (False,))
       # first timestep that didn't finish yet
-      data = self.cursor.fetchone()[0]
-      # update pass=True for timestep
-      self.cursor.execute("UPDATE steps SET pass=(?) WHERE timestep=(?)",
-                          (True,data,))
+      date = self.cursor.fetchone()[0]
+      # assume all tasks are completed successfully: update all tasks
+      self.cursor.execute("UPDATE tasks SET get_boundary=(?) WHERE timestep=(?)", (True,date,))
+      self.cursor.execute("UPDATE tasks SET wps=(?) WHERE timestep=(?)", (True,date,))
+      self.cursor.execute("UPDATE tasks SET wrf=(?) WHERE timestep=(?)", (True,date,))
+      # get all tasks
+      self.cursor.execute("SELECT * FROM tasks WHERE timestep=(?)", (date,))
+      tasks = self.cursor.fetchall()
+      # verify all tasks were completed successfully: set timestep to pass
+      if all(item is True for item in tasks[0][1:]):  # all subtasks completed
+        self.cursor.execute("UPDATE steps SET pass=(?) WHERE timestep=(?)",
+                            (True,date,))
     # commit changes
     self.connection.commit()
 
 
 if __name__=="__main__":
+  global logger
   logger = utils.start_logging('test.log')
   db = database()
   db._new_database()
