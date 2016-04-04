@@ -91,9 +91,14 @@ class database:
                            (timestep TIMESTAMP, pass BOOLEAN)''')
     self.cursor.execute('''CREATE TABLE finished
                            (timestep TIMESTAMP, pass BOOLEAN)''')
-    self.cursor.execute('''CREATE TABLE tasks
-                           (timestep TIMESTAMP, task1 BOOLEAN, task2 BOOLEAN,
-                           task3 BOOLEAN)''')
+    if not self.config['options_upp']['upp']:  # regular WRF run without UPP
+      self.cursor.execute('''CREATE TABLE tasks
+                            (timestep TIMESTAMP, get_boundary BOOLEAN, wps BOOLEAN,
+                            wrf BOOLEAN)''')
+    else:  # need to run Unified Post Processing tool
+      self.cursor.execute('''CREATE TABLE tasks
+                            (timestep TIMESTAMP, get_boundary BOOLEAN, wps BOOLEAN,
+                            wrf BOOLEAN), upp BOOLEAN)''')
 
 
   def _add_timestep_to_db(self, timestep):
@@ -110,8 +115,12 @@ class database:
     logger.info('Adding timestep %s to database' %timestep)
     self.cursor.execute('''INSERT INTO steps VALUES (?,?)''',
                         (timestep, False))
-    self.cursor.execute('''INSERT INTO tasks VALUES (?,?,?,?)''',
-                        (timestep, False, False, False))
+    if not self.config['options_upp']['upp']:  # regular WRF run without UPP
+      self.cursor.execute('''INSERT INTO tasks VALUES (?,?,?,?)''',
+                          (timestep, False, False, False))
+    else:  # need to run Unified Post Processing tool
+      self.cursor.execute('''INSERT INTO tasks VALUES (?,?,?,?,?)''',
+                          (timestep, False, False, False, False))
     self.connection.commit()
 
 
