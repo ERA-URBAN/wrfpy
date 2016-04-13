@@ -33,7 +33,9 @@ class wps(config):
     self._prepare_namelist(datestart, dateend)
     self._link_boundary_files()
     self._link_vtable()
-    geogrid_jid = self._run_geogrid()
+    self._link_tbl_files()
+    #geogrid_jid = self._run_geogrid()
+    geogrid_jid = None
     ungrib_jid = self._run_ungrib(geogrid_jid)
     metgrid_jid = self._run_metgrid(ungrib_jid)
 
@@ -56,8 +58,7 @@ class wps(config):
     prepare wps namelist
     '''
     # read WPS namelist in WPS work_dir
-    wps_nml = f90nml.read(os.path.join(self.config['filesystem']['work_dir'],
-                                       'wps', 'namelist.wps'))
+    wps_nml = f90nml.read(self.config['options_wps']['namelist.wps'])
     # get numer of domains
     ndoms = wps_nml['share']['max_dom']
     # check if ndoms is an integer and >0
@@ -78,12 +79,13 @@ class wps(config):
     wps_nml.write(os.path.join(
       self.config['filesystem']['work_dir'], 'wps', 'namelist.wps'))
 
+
   def _link_boundary_files(self):
     '''
     link boundary grib files to wps work directory with the required naming
     '''
     # get list of files to link
-    filelist = glob.glob(os.path.join(self.boundary_dir, '*'))
+    filelist = glob.glob(os.path.join(self.config['filesystem']['upp_archive_dir'], '*'))
     # make sure we only have files
     filelist = [fl for fl in filelist if os.path.isfile(fl)]
     if len(filelist) == 0:
