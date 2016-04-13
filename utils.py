@@ -200,3 +200,15 @@ def get_script_path():
   get the path of the python script
   '''
   return os.path.dirname(os.path.realpath(sys.argv[0]))
+
+def testjob(id):
+  import subprocess
+  command = "squeue -j %s" %id
+  output = subprocess.check_output(command.split())
+  try:
+    if id==int(output.split()[-8]):
+      return True
+    else:
+     return False
+  except ValueError:
+     return False
