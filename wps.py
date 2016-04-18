@@ -20,24 +20,23 @@ class wps(config):
   '''
   description
   '''
-  def __init__(self, boundary_dir, datestart, dateend):
+  def __init__(self, datestart, dateend):
     config.__init__(self)  # load config
     # define and create wps working directory
     self.wps_workdir = os.path.join(self.config['filesystem']['work_dir'],
                                     'wps')
     utils._create_directory(self.wps_workdir)
-    '''boundary_dir as an argument so we switch between boundary_dir and
-       upp_archive_dir defined in config module'''
-    self.boundary_dir = boundary_dir
+
+
+  def _initialize(self):
+    '''
+    Initialize WPS working directory / namelist
+    '''
     self._clean_boundaries_wps()  # clean leftover boundaries
     self._prepare_namelist(datestart, dateend)
     self._link_boundary_files()
     self._link_vtable()
     self._link_tbl_files()
-    #geogrid_jid = self._run_geogrid()
-    geogrid_jid = None
-    ungrib_jid = self._run_ungrib(geogrid_jid)
-    metgrid_jid = self._run_metgrid(ungrib_jid)
 
 
   def _clean_boundaries_wps(self):
@@ -271,7 +270,10 @@ class wps(config):
 
 if __name__ == "__main__":
   logger = utils.start_logging('test.log')
-  boundary_dir = '/home/WUR/haren009/sources/upp_archive/'
   datestart= datetime(2014,07,27,00)
   dateend = datetime(2014,07,27,06)
-  runwps = wps(boundary_dir, datestart, dateend)
+  wps = wps()
+  wps._initialize(datestart, dateend)
+  wps._run_geogrid()
+  wps._run_ungrib()
+  wps._run_metgrid()
