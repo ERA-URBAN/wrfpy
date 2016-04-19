@@ -64,8 +64,8 @@ class run_wrf(config):
             'time_control:start_month':datestart.month,
             'time_control:start_day':datestart.day,
             'time_control:start_hour':datestart.hour,
-            'time_control:start_date':datetime.strftime(datestart,
-                                                        '%Y-%m-%d_%H:%M:%S')
+            'time_control:start_date':datetime.strftime(datestart, 
+                                                      '%Y-%m-%d_%H:%M:%S'),
             'time_control:end_year':dateend.year,
             'time_control:end_month':dateend.month,
             'time_control:end_day':dateend.day,
@@ -73,7 +73,6 @@ class run_wrf(config):
             'time_control:end_date':datetime.strftime(dateend,
                                                       '%Y-%m-%d_%H:%M:%S')
             }
-    import pdb; pdb.set_trace()
     # loop over dictionary and set start/end date parameters
     for el in dict.keys():
       wrf_nml[el.split(':')[0]][el.split(':')[1]] = dict[el] * ndoms
