@@ -212,3 +212,7 @@ def testjob(id):
      return False
   except ValueError:
      return False
+
+def convert_cylc_time(string):
+    return datetime.datetime.strptime(string, '%Y%m%dT%H00+02')
+
