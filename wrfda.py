@@ -24,7 +24,8 @@ class wrfda(config):
     self.rundir = self.config['filesystem']['wrf_run_dir']
     self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'],
                                       'wrfda')
-    j_id = self.preprocess(datestart)
+    self.obsproc_init(datestart)
+    j_id = self.obsproc_run()
     while True:
       time.sleep(1)
       if not utils.testjob(j_id):
@@ -36,7 +37,10 @@ class wrfda(config):
     self.updatebc('lateral', datestart)
 
 
-  def preprocess(self, datestart):
+  def obsproc_init(self, datestart):
+    '''
+    Sync obsproc namelist with WRF namelist.input
+    '''
     from shutil import copyfile
     from datetime import timedelta
     from datetime import datetime
@@ -77,7 +81,12 @@ class wrfda(config):
     # save obsproc_nml
     utils.silentremove(os.path.join(obsproc_dir, 'namelist.obsproc'))
     obsproc_nml.write(os.path.join(obsproc_dir, 'namelist.obsproc'))
-    # run obsproc.exe
+
+
+  def obsproc_run(self):
+    '''
+    run obsproc.exe
+    '''
     # TODO: check if output is file is created and no errors have occurred
     j_id = None
     if len(self.config['options_slurm']['slurm_obsproc.exe']):
@@ -102,25 +111,16 @@ class wrfda(config):
                             stdout=utils.devnull(), stderr=utils.devnull())
       return None
 
+
   def prepare(self):
+    '''
+    prepare WRFDA directory
+    '''
     obsproc_dir = os.path.join(self.config['filesystem']['wrfda_dir'],
                                'var/obsproc')
     if os.path.exists(self.wrfda_workdir):
       shutil.rmtree(self.wrfda_workdir)  # remove self.wrfda_workdir
     utils._create_directory(self.wrfda_workdir)  # create empty self.wrfda_workdir
-    # read wrfda and obsproc namelists
-    wrfda_namelist = os.path.join(self.config['filesystem']['wrfda_dir'],
-                                  'var/test/tutorial/namelist.input')
-    wrfda_nml = f90nml.read(wrfda_namelist)
-    obsproc_nml = f90nml.read(os.path.join(obsproc_dir, 'namelist.obsproc'))
-    # sync wrfda namelist with obsproc namelist
-    # wrfda_nml['wrfvar18']['analysis_date'] = obsproc_nml['record2']['time_analysis']
-    # wrfda_nml['wrfvar21']['time_window_min'] = obsproc_nml['record2']['time_window_min']
-    # wrfda_nml['wrfvar22']['time_window_max'] = obsproc_nml['record2']['time_window_max']
-    # wrfda_nml['wrfvar7']['cv_options'] =  3
-    # save wrfda namelist
-    utils.silentremove(os.path.join(self.wrfda_workdir, 'namelist.input'))
-    wrfda_nml.write(os.path.join(self.wrfda_workdir, 'namelist.input'))
     # symlink da_wrfvar.exe, LANDUSE.TBL, be.dat.cv3
     os.symlink(os.path.join(
       self.config['filesystem']['wrfda_dir'],'var/da/da_wrfvar.exe'
@@ -178,7 +178,10 @@ class wrfda(config):
 
   def run(self):
     # read WRFDA namelist
-    wrfda_nml = f90nml.read(os.path.join(self.wrfda_workdir, 'namelist.input'))
+    wrfda_namelist = os.path.join(self.config['filesystem']['wrfda_dir'],
+                                  'var/test/tutorial/namelist.input')
+    wrfda_nml = f90nml.read(wrfda_namelist)
+
     # read WRF namelist in WRF work_dir
     wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
                                        'namelist.input'))
@@ -228,36 +231,43 @@ class wrfda(config):
       utils.silentremove(os.path.join(self.wrfda_workdir, 'namelist.input'))
       wrfda_nml.write(os.path.join(self.wrfda_workdir, 'namelist.input'))
       # run da_wrfvar.exe for each domain
-      logfile = os.path.join(self.wrfda_workdir, 'log.wrfda_d' + str(domain))
-      j_id = None
-      if len(self.config['options_slurm']['slurm_wrfvar.exe']):
-        if j_id:
-          mid = "--dependency=afterok:%d" %j_id
-          wrfvar_command = ['sbatch', mid, self.config['options_slurm']['slurm_wrfvar.exe']]
-        else:
-          wrfvar_command = ['sbatch', self.config['options_slurm']['slurm_wrfvar.exe']]
-      utils.check_file_exists(wrfvar_command[-1])
-      try:
-        res = subprocess.check_output(wrfvar_command, cwd=self.wrfda_workdir,
-                                      stderr=utils.devnull())
-        j_id = int(res.split()[-1])  # slurm job-id
-      except subprocess.CalledProcessError:
-        logger.error('Wrfvar failed %s:' %wrfvar_command)
-        raise  # re-raise exception
-      while True:
-        time.sleep(1)
-        if not utils.testjob(j_id):
-          break
-      else:
-        # run locally
-        subprocess.check_call([os.path.join(self.wrfda_workdir, 'da_wrfvar.exe'), '>&!', logfile],
-                              cwd=self.wrfda_workdir, stdout=utils.devnull(), stderr=utils.devnull())
+      self.wrfvar_run() 
       # copy wrfvar_output_d0${domain} to ${RUNDIR}/wrfinput_d0${domain}
       utils.silentremove(os.path.join(self.rundir ,'wrfinput_d0' + str(domain)))
       shutil.copyfile(os.path.join(self.wrfda_workdir, 'wrfvar_output'),
                       os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
       shutil.move(os.path.join(self.wrfda_workdir, 'wrfvar_output'),
                   os.path.join(self.wrfda_workdir, 'wrfvar_output_d0' + str(domain)))
+
+  
+  def wrfvar_run(self):
+    '''
+    run da_wrfvar.exe
+    '''
+    logfile = os.path.join(self.wrfda_workdir, 'log.wrfda_d' + str(domain))
+    j_id = None
+    if len(self.config['options_slurm']['slurm_wrfvar.exe']):
+      if j_id:
+        mid = "--dependency=afterok:%d" %j_id
+        wrfvar_command = ['sbatch', mid, self.config['options_slurm']['slurm_wrfvar.exe']]
+      else:
+        wrfvar_command = ['sbatch', self.config['options_slurm']['slurm_wrfvar.exe']]
+    utils.check_file_exists(wrfvar_command[-1])
+    try:
+      res = subprocess.check_output(wrfvar_command, cwd=self.wrfda_workdir,
+                                    stderr=utils.devnull())
+      j_id = int(res.split()[-1])  # slurm job-id
+    except subprocess.CalledProcessError:
+      logger.error('Wrfvar failed %s:' %wrfvar_command)
+      raise  # re-raise exception
+    while True:
+      time.sleep(1)
+      if not utils.testjob(j_id):
+        break
+    else:
+      # run locally
+      subprocess.check_call([os.path.join(self.wrfda_workdir, 'da_wrfvar.exe'), '>&!', logfile],
+                            cwd=self.wrfda_workdir, stdout=utils.devnull(), stderr=utils.devnull())
 
 
   def updatebc(self, boundary_type, datestart):
@@ -300,35 +310,23 @@ class wrfda(config):
         utils.silentremove(os.path.join(self.wrfda_workdir, 'parame.in'))
         parame.write(os.path.join(self.wrfda_workdir, 'parame.in'))
         # run da_update_bc.exe
-        j_id = None
-        if len(self.config['options_slurm']['slurm_updatebc.exe']):
-          if j_id:
-            mid = "--dependency=afterok:%d" %j_id
-            updatebc_command = ['sbatch', mid, self.config['options_slurm']['slurm_updatebc.exe']]
-          else:
-            updatebc_command = ['sbatch', self.config['options_slurm']['slurm_updatebc.exe']]
-          try:
-            res = subprocess.check_output(updatebc_command, cwd=self.wrfda_workdir,
-                                          stderr=utils.devnull())
-            j_id = int(res.split()[-1])  # slurm job-id
-          except subprocess.CalledProcessError:
-            logger.error('Updatebc failed %s:' %updatebc_command)
-            raise  # re-raise exception
-        while True:
-          time.sleep(0.5)
-          if not utils.testjob(j_id):
-            break
-        else:
-          # run locally
-          subprocess.check_call(os.path.join(self.wrfda_workdir, 'da_update_bc.exe'),
-                                cwd=self.wrfda_workdir,
-                                stdout=utils.devnull(), stderr=utils.devnull())
-
+        self.updatebc_run()
         # copy updated first guess to RUNDIR/wrfinput
         utils.silentremove(os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
         shutil.move(os.path.join(self.wrfda_workdir, 'fg'),
                     os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
     elif boundary_type == 'lateral' :
+      # run da_update_bc.exe
+      self.updatebc_run()
+      # copy over updated lateral boundary conditions to RUNDIR
+      utils.silentremove(os.path.join(self.rundir, 'wrfbdy_d01'))
+      shutil.copyfile(os.path.join(self.wrfda_workdir, 'wrfbdy_d01'),
+                      os.path.join(self.rundir, 'wrfbdy_d01'))
+    else:
+      raise Exception('unknown boundary type')
+
+
+    def updatebc_run(self):
       # run da_update_bc.exe
       j_id = None
       if len(self.config['options_slurm']['slurm_updatebc.exe']):
@@ -354,12 +352,6 @@ class wrfda(config):
                               cwd=self.wrfda_workdir,
                               stdout=utils.devnull(), stderr=utils.devnull())
 
-      # copy over updated lateral boundary conditions to RUNDIR
-      utils.silentremove(os.path.join(self.rundir, 'wrfbdy_d01'))
-      shutil.copyfile(os.path.join(self.wrfda_workdir, 'wrfbdy_d01'),
-                      os.path.join(self.rundir, 'wrfbdy_d01'))
-    else:
-      raise Exception('unknown boundary type')
 
 if __name__ == "__main__":
   datestart= datetime(2014,07,27,02)
