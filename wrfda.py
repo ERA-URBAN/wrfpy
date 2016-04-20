@@ -25,22 +25,18 @@ class wrfda(config):
     self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'],
                                       'wrfda')
    
-  def run(datestart):
+  def run(self, datestart):
     '''
     Run all WRFDA steps
     '''
     self.obsproc_init(datestart)
-    j_id = None
-    self.obsproc_run()
-    while True:
-      time.sleep(1)
-      if not utils.testjob(j_id):
-        break
+    #self.obsproc_run()
     self.prepare_updatebc(datestart)  # prepares for updating low bc
     self.updatebc_run()  # run da_updatebc.exe
+    import pdb; pdb.set_trace()
     self.prepare_wrfda()  # prepare for running da_wrfvar.exe
     self.wrfvar_run()  # run da_wrfvar.exe
-    self.prepare_updatebc_type('lateral', datestart)  # prepare for updating lateral bc
+    self.prepare_updatebc_type('lateral', datestart, 1)  # prepare for updating lateral bc
     self.updatebc_run()  # run da_updatebc.exe
     self.wrfda_post()  # copy files over to WRF run_dir
 
@@ -94,6 +90,8 @@ class wrfda(config):
     '''
     run obsproc.exe
     '''
+    obsproc_dir = os.path.join(self.config['filesystem']['wrfda_dir'],
+                               'var/obsproc')
     # TODO: check if output is file is created and no errors have occurred
     j_id = None
     if len(self.config['options_slurm']['slurm_obsproc.exe']):
@@ -116,6 +114,7 @@ class wrfda(config):
       # run locally
       subprocess.check_call(os.path.join(obsproc_dir, 'obsproc.exe'), cwd=obsproc_dir,
                             stdout=utils.devnull(), stderr=utils.devnull())
+
       return None
 
 
@@ -143,8 +142,10 @@ class wrfda(config):
               ), os.path.join(wrfda_workdir, 'ob.ascii'))
 
 
-  def create_parame(self, parame_type):
-    filename = os.path.join(self.wrfda_workdir, 'parame.in')
+  def create_parame(self, parame_type, domain):
+    # set domain specific workdir
+    wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
+    filename = os.path.join(wrfda_workdir, 'parame.in')
     utils.silentremove(filename)
     # add configuration to parame.in file
     parame = open(filename, 'w')  # open file
@@ -299,7 +300,7 @@ class wrfda(config):
       wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
                                          'namelist.input'))
       # define parame.in file
-      self.create_parame('lower')
+      self.create_parame('lower', domain)
       # symlink da_update_bc.exe
       os.symlink(os.path.join(
         self.config['filesystem']['wrfda_dir'],'var/da/da_update_bc.exe'
@@ -312,6 +313,8 @@ class wrfda(config):
 
 
   def prepare_updatebc_type(self, boundary_type, datestart, domain):
+    # set domain specific workdir
+    wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
     if boundary_type == 'lower' :
       # copy first guess (wrfout in wrfinput format) for WRFDA
       first_guess = os.path.join(self.rundir, 'wrfvar_input_d0' + str(domain) +
@@ -402,4 +405,5 @@ class wrfda(config):
  
 if __name__ == "__main__":
   datestart= datetime(2014,07,27,02)
-  wrf_da = wrfda(datestart)
+  wrf_da = wrfda()
+  wrf_da.run(datestart)
