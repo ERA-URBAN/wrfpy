@@ -24,21 +24,25 @@ class wrfda(config):
     self.rundir = self.config['filesystem']['wrf_run_dir']
     self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'],
                                       'wrfda')
-   
+    self.max_dom = utils.get_max_dom()  # get maximum domain number
+
+ 
   def run(self, datestart):
     '''
     Run all WRFDA steps
     '''
-    self.obsproc_init(datestart)
-    #self.obsproc_run()
+    self.obsproc_init(datestart)  # initialize obsrproc work directory
+    self.obsproc_run()  # run obsproc.exe
     self.prepare_updatebc(datestart)  # prepares for updating low bc
-    self.updatebc_run()  # run da_updatebc.exe
-    import pdb; pdb.set_trace()
+    for domain in range(1, self.max_dom+1):
+      self.updatebc_run(domain)  # run da_updatebc.exe
     self.prepare_wrfda()  # prepare for running da_wrfvar.exe
-    self.wrfvar_run()  # run da_wrfvar.exe
+    for domain in range(1, self.max_dom+1):
+      self.wrfvar_run(domain)  # run da_wrfvar.exe
     self.prepare_updatebc_type('lateral', datestart, 1)  # prepare for updating lateral bc
-    self.updatebc_run()  # run da_updatebc.exe
+    self.updatebc_run(1)  # run da_updatebc.exe
     self.wrfda_post()  # copy files over to WRF run_dir
+
 
   def obsproc_init(self, datestart):
     '''
@@ -122,10 +126,12 @@ class wrfda(config):
     '''
     prepare WRFDA directory
     '''
+    # set domain specific workdir
+    wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
     obsproc_dir = os.path.join(self.config['filesystem']['wrfda_dir'],
                                'var/obsproc')
-    # define domain specific workdir
-    workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
+    # read obsproc namelist
+    obsproc_nml = f90nml.read(os.path.join(obsproc_dir, 'namelist.obsproc'))
     # symlink da_wrfvar.exe, LANDUSE.TBL, be.dat.cv3
     os.symlink(os.path.join(
       self.config['filesystem']['wrfda_dir'],'var/da/da_wrfvar.exe'
@@ -241,22 +247,19 @@ class wrfda(config):
     '''
     prepare WRFDA
     '''
-    # read WRF namelist in WRF work_dir
-    wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
-                                       'namelist.input'))
-    # maximum domain number
-    max_dom = wrf_nml['domains']['max_dom']
     # prepare a WRFDA workdirectory for each domain
-    for domain in range(1, max_dom+1):
+    for domain in range(1, self.max_dom+1):
       self.prepare_symlink_files(domain)
       self.prepare_wrfda_namelist(domain)
 
 
-  def wrfvar_run(self):
+  def wrfvar_run(self, domain):
     '''
     run da_wrfvar.exe
     '''
-    logfile = os.path.join(self.wrfda_workdir, 'log.wrfda_d' + str(domain))
+    # set domain specific workdir
+    wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))    
+    logfile = os.path.join(wrfda_workdir, 'log.wrfda_d' + str(domain))
     j_id = None
     if len(self.config['options_slurm']['slurm_wrfvar.exe']):
       if j_id:
@@ -264,32 +267,27 @@ class wrfda(config):
         wrfvar_command = ['sbatch', mid, self.config['options_slurm']['slurm_wrfvar.exe']]
       else:
         wrfvar_command = ['sbatch', self.config['options_slurm']['slurm_wrfvar.exe']]
-    utils.check_file_exists(wrfvar_command[-1])
-    try:
-      res = subprocess.check_output(wrfvar_command, cwd=self.wrfda_workdir,
-                                    stderr=utils.devnull())
-      j_id = int(res.split()[-1])  # slurm job-id
-    except subprocess.CalledProcessError:
-      logger.error('Wrfvar failed %s:' %wrfvar_command)
-      raise  # re-raise exception
-    while True:
-      time.sleep(1)
-      if not utils.testjob(j_id):
-        break
+      utils.check_file_exists(wrfvar_command[-1])
+      try:
+        res = subprocess.check_output(wrfvar_command, cwd=wrfda_workdir,
+                                      stderr=utils.devnull())
+        j_id = int(res.split()[-1])  # slurm job-id
+      except subprocess.CalledProcessError:
+        logger.error('Wrfvar failed %s:' %wrfvar_command)
+        raise  # re-raise exception
+      while True:
+        time.sleep(1)
+        if not utils.testjob(j_id):
+          break
     else:
       # run locally
-      subprocess.check_call([os.path.join(self.wrfda_workdir, 'da_wrfvar.exe'), '>&!', logfile],
-                            cwd=self.wrfda_workdir, stdout=utils.devnull(), stderr=utils.devnull())
+      subprocess.check_call([os.path.join(wrfda_workdir, 'da_wrfvar.exe'), '>&!', logfile],
+                            cwd=wrfda_workdir, stdout=utils.devnull(), stderr=utils.devnull())
 
 
   def prepare_updatebc(self, datestart):
-    # read WRF namelist in WRF work_dir
-    wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
-                                       'namelist.input'))
-    # maximum domain number
-    max_dom = wrf_nml['domains']['max_dom']
     # prepare a WRFDA workdirectory for each domain
-    for domain in range(1, max_dom+1):
+    for domain in range(1, self.max_dom+1):
       # TODO: add check for domain is int
       # define domain specific workdir
       wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
@@ -316,6 +314,8 @@ class wrfda(config):
     # set domain specific workdir
     wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
     if boundary_type == 'lower' :
+      # define parame.in file
+      self.create_parame(boundary_type, domain)
       # copy first guess (wrfout in wrfinput format) for WRFDA
       first_guess = os.path.join(self.rundir, 'wrfvar_input_d0' + str(domain) +
                                 '_' + datetime.strftime(datestart,
@@ -336,6 +336,8 @@ class wrfda(config):
       utils.silentremove(os.path.join(wrfda_workdir, 'parame.in'))
       parame.write(os.path.join(wrfda_workdir, 'parame.in'))
     elif boundary_type == 'lateral' :
+      # define parame.in file
+      self.create_parame(boundary_type, domain)
       # read parame.in file
       parame = f90nml.read(os.path.join(wrfda_workdir, 'parame.in'))
       # set output from WRFDA
@@ -347,7 +349,9 @@ class wrfda(config):
       raise Exception('unknown boundary type')
 
 
-  def updatebc_run(self):
+  def updatebc_run(self, domain):
+    # set domain specific workdir
+    wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
     # run da_update_bc.exe
     j_id = None
     if len(self.config['options_slurm']['slurm_updatebc.exe']):
@@ -357,39 +361,31 @@ class wrfda(config):
       else:
         updatebc_command = ['sbatch', self.config['options_slurm']['slurm_updatebc.exe']]
       try:
-        res = subprocess.check_output(updatebc_command, cwd=self.wrfda_workdir,
+        res = subprocess.check_output(updatebc_command, cwd=wrfda_workdir,
                                       stderr=utils.devnull())
         j_id = int(res.split()[-1])  # slurm job-id
       except subprocess.CalledProcessError:
         logger.error('Updatebc failed %s:' %updatebc_command)
         raise  # re-raise exception
-    while True:
-      time.sleep(0.5)
-      if not utils.testjob(j_id):
-        break
+      while True:
+        time.sleep(0.5)
+        if not utils.testjob(j_id):
+          break
     else:
       # run locally
-      subprocess.check_call(os.path.join(self.wrfda_workdir, 'da_update_bc.exe'),
-                            cwd=self.wrfda_workdir,
+      print os.path.join(wrfda_workdir, 'da_update_bc.exe')
+      subprocess.check_call(os.path.join(wrfda_workdir, 'da_update_bc.exe'),
+                            cwd=wrfda_workdir,
                             stdout=utils.devnull(), stderr=utils.devnull())
 
   def wrfda_post(self):
     '''
     Move files into WRF run dir after all data assimilation steps have completed
     '''
-    # read WRF namelist in WRF work_dir
-    wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
-                                       'namelist.input'))
-    # maximum domain number
-    max_dom = wrf_nml['domains']['max_dom']
     # prepare a WRFDA workdirectory for each domain
-    for domain in range(1, max_dom+1):
+    for domain in range(1, self.max_dom+1):
       # set domain specific workdir
       wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
-      # copy updated first guess to RUNDIR/wrfinput
-      utils.silentremove(os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
-      shutil.move(os.path.join(wrfda_workdir, 'fg'),
-                  os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
       if domain==1:
         # copy over updated lateral boundary conditions to RUNDIR
         # only for outer domain
@@ -404,6 +400,6 @@ class wrfda(config):
 
  
 if __name__ == "__main__":
-  datestart= datetime(2014,07,27,02)
+  datestart= datetime(2014,07,27,00)
   wrf_da = wrfda()
   wrf_da.run(datestart)
