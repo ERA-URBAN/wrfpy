@@ -214,5 +214,16 @@ def testjob(id):
      return False
 
 def convert_cylc_time(string):
+    import datetime
     return datetime.datetime.strptime(string, '%Y%m%dT%H00+02')
+
+
+def get_max_dom():
+    '''
+    get maximum domain number from WRF namelist.input
+    '''
+    wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
+                                       'namelist.input'))
+    # maximum domain number
+    return wrf_nml['domains']['max_dom']
 
