@@ -10,6 +10,7 @@ import json
 import os
 import utils
 import f90nml
+import yaml
 
 class config:
   '''
@@ -28,7 +29,6 @@ class config:
       # TODO: exit and notify user to manually edit config file
     # read json config file
     self._read_json()
-    import pdb; pdb.set_trace()
     # check config file for consistenc and errors
     self._check_config()
 
@@ -89,9 +89,8 @@ class config:
     read json config file
     '''
     with open(self.configfile, 'r') as infile:
-      self.config = json.load(infile)
-
-
+      #self.config = json.load(infile)
+      self.config = yaml.safe_load(infile)
   def _check_config(self):
     '''
     check configuration file
@@ -208,6 +207,7 @@ class config:
     '''
     # verify that example namelist.wps exists and is not removed by user
     basepath = utils.get_script_path()
+    basepath = '/home/WUR/haren009/wrfpy'  # TODO: fix 
     self.example_file = os.path.join(basepath, 'examples', 'namelist.wps')
     utils.check_file_exists(self.example_file)
     # load specified namelist
