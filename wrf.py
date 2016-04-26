@@ -51,8 +51,7 @@ class run_wrf(config):
     input_namelist = os.path.join(self.config['filesystem']['wrf_run_dir'],
                                   'namelist.input')
     # read WRF namelist in WRF work_dir
-    wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
-                                       'namelist.forecast'))
+    wrf_nml = f90nml.read(self.config['options_wrf']['namelist.input'])
     # get number of domains
     ndoms = wrf_nml['domains']['max_dom']
     # check if ndoms is an integer and >0
@@ -64,14 +63,10 @@ class run_wrf(config):
             'time_control:start_month':datestart.month,
             'time_control:start_day':datestart.day,
             'time_control:start_hour':datestart.hour,
-            'time_control:start_date':datetime.strftime(datestart, 
-                                                      '%Y-%m-%d_%H:%M:%S'),
             'time_control:end_year':dateend.year,
             'time_control:end_month':dateend.month,
             'time_control:end_day':dateend.day,
             'time_control:end_hour':dateend.hour,
-            'time_control:end_date':datetime.strftime(dateend,
-                                                      '%Y-%m-%d_%H:%M:%S')
             }
     # loop over dictionary and set start/end date parameters
     for el in dict.keys():
