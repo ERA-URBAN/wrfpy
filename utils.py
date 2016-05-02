@@ -222,8 +222,19 @@ def get_max_dom():
     '''
     get maximum domain number from WRF namelist.input
     '''
-    wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
+    import f90nml
+    from config import config
+    CONFIG = config()
+    CONFIG.__init__()  # load config
+    wrf_nml = f90nml.read(os.path.join(CONFIG.config['filesystem']['wrf_run_dir'],
                                        'namelist.input'))
     # maximum domain number
     return wrf_nml['domains']['max_dom']
 
+
+def days_hours_minutes_seconds(td):
+    ''' return days, hours, minutes, seconds
+        input: datetime.timedelta
+    '''
+    import datetime
+    return td.days, td.seconds//3600, (td.seconds//60)%60, td.seconds%60

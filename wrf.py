@@ -74,6 +74,16 @@ class run_wrf(config):
         wrf_nml[el.split(':')[0]][el.split(':')[1]] = [dict[el]] * ndoms
       else:
         wrf_nml[el.split(':')[0]][el.split(':')[1]] = dict[el] * ndoms
+    # calculate datetime.timedelta between datestart and dateend
+    td = dateend - datestart
+    # set interval_seconds to total seconds between datestart and dateend
+    wrf_nml['time_control']['interval_seconds'] = int((td).total_seconds())
+    # set run_days, run_hours, run_minutes, run_seconds
+    td_days, td_hours, td_minutes, td_seconds = utils.days_hours_minutes_seconds(td)
+    wrf_nml['time_control']['run_days'] = td_days
+    wrf_nml['time_control']['run_hours'] = td_hours
+    wrf_nml['time_control']['run_minutes'] = td_minutes
+    wrf_nml['time_control']['run_seconds'] = td_seconds
     # write namelist.input
     wrf_nml.write(os.path.join(
       self.config['filesystem']['wrf_run_dir'], 'namelist.input'))
