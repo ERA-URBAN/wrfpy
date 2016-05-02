@@ -70,8 +70,10 @@ class run_wrf(config):
             }
     # loop over dictionary and set start/end date parameters
     for el in dict.keys():
-      wrf_nml[el.split(':')[0]][el.split(':')[1]] = dict[el] * ndoms
-
+      if type(dict[el])!=list:
+        wrf_nml[el.split(':')[0]][el.split(':')[1]] = [dict[el]] * ndoms
+      else:
+        wrf_nml[el.split(':')[0]][el.split(':')[1]] = dict[el] * ndoms
     # write namelist.input
     wrf_nml.write(os.path.join(
       self.config['filesystem']['wrf_run_dir'], 'namelist.input'))
