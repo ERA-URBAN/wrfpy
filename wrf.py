@@ -11,6 +11,7 @@ from datetime import datetime
 import glob
 import os
 import f90nml
+import utils
 
 class run_wrf(config):
   '''
