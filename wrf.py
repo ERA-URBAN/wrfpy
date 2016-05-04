@@ -48,9 +48,6 @@ class run_wrf(config):
     # check if both datestart and dateend are a datetime instance
     if not all([ isinstance(dt, datetime) for dt in [datestart, dateend] ]):
       raise TypeError("datestart and dateend must be an instance of datetime")
-    # namelist.input target
-    input_namelist = os.path.join(self.config['filesystem']['wrf_run_dir'],
-                                  'namelist.input')
     # read WRF namelist in WRF work_dir
     wrf_nml = f90nml.read(self.config['options_wrf']['namelist.input'])
     # get number of domains
@@ -162,6 +159,6 @@ class run_wrf(config):
 
 if __name__=="__main__":
   datestart= datetime(2014,07,16,00)
-  dateend = datetime(2014,07,17,00)  
+  dateend = datetime(2014,07,17,00)
   wrf = run_wrf(datestart, dateend)
   real_jid = wrf.run_real()
