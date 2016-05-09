@@ -19,14 +19,14 @@ class wrfda(config):
   '''
   description
   '''
-  def __init__(self):
-    config.__init__(self)  # load config
+  def __init__(self, wrfpy_dir):
+    config.__init__(self, wrfpy_dir)  # load config
     self.rundir = self.config['filesystem']['wrf_run_dir']
     self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'],
                                       'wrfda')
     self.max_dom = utils.get_max_dom()  # get maximum domain number
 
- 
+
   def run(self, datestart):
     '''
     Run all WRFDA steps
@@ -230,11 +230,11 @@ class wrfda(config):
     wrfda_nml['wrfvar22']['time_window_max'] = obsproc_nml['record2']['time_window_max']
     wrfda_nml['wrfvar7']['cv_options'] =  3
     tana = utils.return_validate(obsproc_nml['record2']['time_analysis'][:-6])
-    wrfda_nml['time_control']['start_year'] = tana.year 
-    wrfda_nml['time_control']['start_month'] = tana.month   
+    wrfda_nml['time_control']['start_year'] = tana.year
+    wrfda_nml['time_control']['start_month'] = tana.month
     wrfda_nml['time_control']['start_day'] = tana.day
-    wrfda_nml['time_control']['start_hour'] = tana.hour   
-    wrfda_nml['time_control']['end_year'] = tana.year  
+    wrfda_nml['time_control']['start_hour'] = tana.hour
+    wrfda_nml['time_control']['end_year'] = tana.year
     wrfda_nml['time_control']['end_month'] = tana.month
     wrfda_nml['time_control']['end_day'] = tana.day
     wrfda_nml['time_control']['end_hour'] = tana.hour
@@ -242,7 +242,7 @@ class wrfda(config):
     utils.silentremove(os.path.join(wrfda_workdir, 'namelist.input'))
     wrfda_nml.write(os.path.join(wrfda_workdir, 'namelist.input'))
 
- 
+
   def prepare_wrfda(self):
     '''
     prepare WRFDA
@@ -258,7 +258,7 @@ class wrfda(config):
     run da_wrfvar.exe
     '''
     # set domain specific workdir
-    wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))    
+    wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
     logfile = os.path.join(wrfda_workdir, 'log.wrfda_d' + str(domain))
     j_id = None
     if len(self.config['options_slurm']['slurm_wrfvar.exe']):
@@ -398,7 +398,7 @@ class wrfda(config):
                       os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
 
 
- 
+
 if __name__ == "__main__":
   datestart= datetime(2014,07,27,00)
   wrf_da = wrfda()

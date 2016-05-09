@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+
+'''
+description: 	WRFpy main module
+license: 	    APACHE 2.0
+author:		    Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
+'''
+
+import os
+import argparse
+import errno
+import utils
+from config import config
+
+class wrfpy(config):
+  '''
+  WRFpy main module
+  '''
+  def __init__(self, action, name):
+    self.name = name
+    home = os.path.expanduser("~")  # get users homedir
+    self.wrfpy_dir = os.path.join(home, 'wrfpy', name)
+    if action=='create':
+      self._create_wrfpy_dir()
+      global logger
+      logger = utils.start_logging(os.path.join(self.wrfpy_dir, 'wrfpy.log'))
+      self._create_cylc_files()
+
+    
+  def _create_wrfpy_dir(self):
+    '''
+    description
+    '''
+    try:
+      os.makedirs(self.wrfpy_dir)
+    except OSError as e:
+      if e.errno == errno.EEXIST:  # directory already exists
+        print('A WRFpy simulation with the name ' + self.name + ' already '
+              'exists, please remove ' + self.wrfpy_dir + ' manually.')
+        exit()
+      else:
+        raise  # re-raise exception if a different error occured
+
+
+  def _create_cylc_files(self):
+    '''
+    description
+    '''
+    # create cylc bin directory
+    utils._create_directory(os.path.join(self.wrfpy_dir, 'bin'))
+    # link executables in cylc bin directory
+    # TODO
+    # symlink cylc executables to cylc bin directory
+    # TODO
+    # create confis.json in self.wrfpy_dir
+    config.__init__(self, self.wrfpy_dir)
+
+    
+def main():
+  '''
+  define argparse menu
+  '''
+  parser = argparse.ArgumentParser(
+    description='add split output streams to a WRF namelist.input file')
+  parser.add_argument('action', metavar='ACTION', type=str, nargs=1,
+                      help='action type [create, run, monitor]')
+  parser.add_argument('name', metavar='NAME', type=str, nargs=1,
+                      help='name for the WRF simulation run')
+  # array of all arguments passed to script
+  args = parser.parse_args()
+  # specify actions that are allowed
+  allowed_actions = ['create', 'run', 'monitor']
+  if args.action[0].lower() not in allowed_actions:
+    print('First argument must be one of create/run/monitor')
+    exit()
+  # call wrfpy class
+  wrfpy(args.action[0].lower(), args.name[0])
+
+
+if __name__=="__main__":
+  main()

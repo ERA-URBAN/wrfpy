@@ -20,8 +20,8 @@ class wps(config):
   '''
   description
   '''
-  def __init__(self, datestart, dateend):
-    config.__init__(self)  # load config
+  def __init__(self, wrfpy_dir, datestart, dateend):
+    config.__init__(self, wrfpy_dir)  # load config
     # define and create wps working directory
     self.wps_workdir = os.path.join(self.config['filesystem']['work_dir'],
                                     'wps')
@@ -267,13 +267,3 @@ class wps(config):
         logger.error('Metgrid failed %s:' %metgrid_command)
         raise  # re-raise exception
 
-
-if __name__ == "__main__":
-  logger = utils.start_logging('test.log')
-  datestart= datetime(2014,07,27,00)
-  dateend = datetime(2014,07,27,06)
-  wps = wps()
-  wps._initialize(datestart, dateend)
-  wps._run_geogrid()
-  wps._run_ungrib()
-  wps._run_metgrid()
