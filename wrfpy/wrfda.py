@@ -25,6 +25,11 @@ class wrfda(config):
     self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'],
                                       'wrfda')
     self.max_dom = utils.get_max_dom()  # get maximum domain number
+    # copy default 3dvar obsproc namelist to namelist.obsproc
+    self.obsproc_dir = os.path.join(self.config['filesystem']['wrfda_dir'],
+                                    'var/obsproc')
+    # get dictionary with workdir/obs filename per domain
+    self.obs = self.get_obsproc_dirs()
 
 
   def run(self, datestart):
@@ -51,43 +56,86 @@ class wrfda(config):
     from shutil import copyfile
     from datetime import timedelta
     from datetime import datetime
-    # copy default 3dvar obsproc namelist to namelist.obsproc
-    obsproc_dir = os.path.join(self.config['filesystem']['wrfda_dir'],
-                               'var/obsproc')
-    # read obsproc namelist
-    obsproc_nml = f90nml.read(os.path.join(obsproc_dir,
-                                           'namelist.obsproc.3dvar.wrfvar-tut'))
+    # convert to unique list
+    obslist = list(set(self.obs.values()))
     # read WRF namelist in WRF work_dir
     wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
                                        'namelist.input'))
-    # copy observation in LITTLE_R format to obsproc_dir
-    shutil.copyfile(os.path.join(
-      self.config['filesystem']['obs_dir'],
-      self.config['filesystem']['obs_filename']), os.path.join(
-        obsproc_dir, self.config['filesystem']['obs_filename']))
-    # sync obsproc namelist variables with wrf namelist.input
-    obsproc_nml['record1']['obs_gts_filename'] = str(self.config[
-      'filesystem']['obs_filename'])  # convert unicode str to regular str
-    obsproc_nml['record8']['nesti'] = wrf_nml['domains']['i_parent_start']
-    obsproc_nml['record8']['nestj'] = wrf_nml['domains']['j_parent_start']
-    obsproc_nml['record8']['nestix'] = wrf_nml['domains']['e_we']
-    obsproc_nml['record8']['nestjx'] = wrf_nml['domains']['e_sn']
-    obsproc_nml['record8']['numc'] = wrf_nml['domains']['parent_id']
-    obsproc_nml['record8']['dis'] = wrf_nml['domains']['dx']
-    obsproc_nml['record8']['maxnes'] = wrf_nml['domains']['max_dom']
-    # set time_analysis, time_window_min, time_window_max
-    # check if both datestart and dateend are a datetime instance
-    if not isinstance(datestart, datetime):
-      raise TypeError("datestart must be an instance of datetime")
-    obsproc_nml['record2']['time_analysis'] = datetime.strftime(datestart,
-                                                        '%Y-%m-%d_%H:%M:%S')
-    obsproc_nml['record2']['time_window_min'] = datetime.strftime(
-      datestart - timedelta(minutes=15), '%Y-%m-%d_%H:%M:%S')
-    obsproc_nml['record2']['time_window_max'] = datetime.strftime(
-      datestart + timedelta(minutes=15), '%Y-%m-%d_%H:%M:%S')
-    # save obsproc_nml
-    utils.silentremove(os.path.join(obsproc_dir, 'namelist.obsproc'))
-    obsproc_nml.write(os.path.join(obsproc_dir, 'namelist.obsproc'))
+    for obs in obslist:
+      # read obsproc namelist
+      obsproc_nml = f90nml.read(os.path.join(self.obsproc_dir,
+                                             'namelist.obsproc.3dvar.wrfvar-tut'))
+      # create obsproc workdir
+      self.create_obsproc_dir(obs[0])
+      # copy observation in LITTLE_R format to obsproc_dir
+      shutil.copyfile(os.path.join(
+        self.config['filesystem']['obs_dir'], obs[1]),
+        os.path.join(obs[0], obs[1]))
+      # sync obsproc namelist variables with wrf namelist.input
+      obsproc_nml['record1']['obs_gts_filename'] = obs[1]
+      obsproc_nml['record8']['nesti'] = wrf_nml['domains']['i_parent_start']
+      obsproc_nml['record8']['nestj'] = wrf_nml['domains']['j_parent_start']
+      obsproc_nml['record8']['nestix'] = wrf_nml['domains']['e_we']
+      obsproc_nml['record8']['nestjx'] = wrf_nml['domains']['e_sn']
+      obsproc_nml['record8']['numc'] = wrf_nml['domains']['parent_id']
+      obsproc_nml['record8']['dis'] = wrf_nml['domains']['dx']
+      obsproc_nml['record8']['maxnes'] = wrf_nml['domains']['max_dom']
+      # set time_analysis, time_window_min, time_window_max
+      # check if both datestart and dateend are a datetime instance
+      if not isinstance(datestart, datetime):
+        raise TypeError("datestart must be an instance of datetime")
+      obsproc_nml['record2']['time_analysis'] = datetime.strftime(datestart,
+                                                          '%Y-%m-%d_%H:%M:%S')
+      obsproc_nml['record2']['time_window_min'] = datetime.strftime(
+        datestart - timedelta(minutes=15), '%Y-%m-%d_%H:%M:%S')
+      obsproc_nml['record2']['time_window_max'] = datetime.strftime(
+        datestart + timedelta(minutes=15), '%Y-%m-%d_%H:%M:%S')
+      # save obsproc_nml
+      utils.silentremove(os.path.join(obs[0], 'namelist.obsproc'))
+      obsproc_nml.write(os.path.join(obs[0], 'namelist.obsproc'))
+
+
+  def get_obsproc_dirs(self):
+    '''
+    get list of observation names and workdirs for obsproc
+		'''
+		# initialize variables
+    obsnames, obsproc_workdirs = [], []
+		# 
+    for dom in range(1, self.max_dom + 1):
+      try:
+        obsnames.append(self.config['filesystem']['obs_filename_d' + str(dom)])
+        obsproc_workdirs.append(os.path.join(
+                                self.config['filesystem']['work_dir'],
+																'obsproc', 'obs_filename_d' + str(dom)))
+      except KeyError:
+        obsnames.append(self.config['filesystem']['obs_filename'])
+        obsproc_workdirs.append(os.path.join(
+                                self.config['filesystem']['work_dir'],
+                                'obsproc', 'obs_filename'))
+    # merge everything into a dict
+    # domain: (workdir, obsname)
+    obs = dict(zip(range(1, self.max_dom + 1), zip(obsproc_workdirs, obsnames)))
+    return obs
+
+
+  def create_obsproc_dir(self, workdir):
+    '''
+		symlink all files required to run obsproc.exe into obsproc workdir
+		'''
+		# cleanup
+		utils.silentremove(workdir)
+		# create work directory
+    utils._create_directory(workdir)
+		# symlink error files
+    files = ['DIR.txt', 'HEIGHT.txt', 'PRES.txt', 'RH.txt', 'TEMP.txt',
+		         'UV.txt', 'obserr.txt']
+    for fl in files:
+      os.symlink(os.path.join(self.obsproc_dir, fl), 
+                 os.path.join(workdir, fl))
+    # symlink obsproc.exe
+    os.symlink(os.path.join(self.obsproc_dir, 'src', 'obsproc.exe'), 
+               os.path.join(workdir, 'obsproc.exe'))
 
 
   def obsproc_run(self):
@@ -128,10 +176,9 @@ class wrfda(config):
     '''
     # set domain specific workdir
     wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
-    obsproc_dir = os.path.join(self.config['filesystem']['wrfda_dir'],
-                               'var/obsproc')
     # read obsproc namelist
-    obsproc_nml = f90nml.read(os.path.join(obsproc_dir, 'namelist.obsproc'))
+    obsproc_nml = f90nml.read(os.path.join(self.obs[domain][0],
+                                           'namelist.obsproc'))
     # symlink da_wrfvar.exe, LANDUSE.TBL, be.dat.cv3
     os.symlink(os.path.join(
       self.config['filesystem']['wrfda_dir'],'var/da/da_wrfvar.exe'
@@ -143,8 +190,8 @@ class wrfda(config):
       self.config['filesystem']['wrfda_dir'],'run/LANDUSE.TBL'
       ), os.path.join(wrfda_workdir, 'LANDUSE.TBL'))
     # symlink output of obsproc
-    os.symlink(os.path.join(self.config['filesystem']['wrfda_dir'],
-               'var/obsproc/obs_gts_' + obsproc_nml['record2']['time_analysis'] + '.3DVAR',
+    os.symlink(os.path.join(self.obs[domain][0],
+               'obs_gts_' + obsproc_nml['record2']['time_analysis'] + '.3DVAR',
               ), os.path.join(wrfda_workdir, 'ob.ascii'))
 
 
@@ -221,9 +268,7 @@ class wrfda(config):
         wrfda_nml['physics'][var] = var_value[domain - 1]
       except TypeError:
         wrfda_nml['physics'][var] = var_value
-    obsproc_dir = os.path.join(self.config['filesystem']['wrfda_dir'],
-                               'var/obsproc')
-    obsproc_nml = f90nml.read(os.path.join(obsproc_dir, 'namelist.obsproc'))
+    obsproc_nml = f90nml.read(os.path.join(self.obs[domain][0], 'namelist.obsproc'))
     # sync wrfda namelist with obsproc namelist
     wrfda_nml['wrfvar18']['analysis_date'] = obsproc_nml['record2']['time_analysis']
     wrfda_nml['wrfvar21']['time_window_min'] = obsproc_nml['record2']['time_window_min']
