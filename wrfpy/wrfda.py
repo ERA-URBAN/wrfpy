@@ -19,8 +19,8 @@ class wrfda(config):
   '''
   description
   '''
-  def __init__(self, wrfpy_dir):
-    config.__init__(self, wrfpy_dir)  # load config
+  def __init__(self):
+    config.__init__(self)  # load config
     self.rundir = self.config['filesystem']['wrf_run_dir']
     self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'],
                                       'wrfda')
@@ -99,20 +99,25 @@ class wrfda(config):
     '''
     get list of observation names and workdirs for obsproc
 		'''
+    # read WRF namelist in WRF work_dir
+    wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
+                                       'namelist.input'))
 		# initialize variables
     obsnames, obsproc_workdirs = [], []
 		# 
     for dom in range(1, self.max_dom + 1):
       try:
-        obsnames.append(self.config['filesystem']['obs_filename_d' + str(dom)])
+        obsname = self.config['filesystem']['obs_filename_d' + str(dom)]
+        obsnames.append(obsname)
         obsproc_workdirs.append(os.path.join(
                                 self.config['filesystem']['work_dir'],
-																'obsproc', 'obs_filename_d' + str(dom)))
+                                'obsproc', obsname))
       except KeyError:
-        obsnames.append(self.config['filesystem']['obs_filename'])
+        obsname = self.config['filesystem']['obs_filename']
+        obsnames.append(obsname)
         obsproc_workdirs.append(os.path.join(
                                 self.config['filesystem']['work_dir'],
-                                'obsproc', 'obs_filename'))
+                                'obsproc', obsname))
     # merge everything into a dict
     # domain: (workdir, obsname)
     obs = dict(zip(range(1, self.max_dom + 1), zip(obsproc_workdirs, obsnames)))
@@ -121,11 +126,11 @@ class wrfda(config):
 
   def create_obsproc_dir(self, workdir):
     '''
-		symlink all files required to run obsproc.exe into obsproc workdir
-		'''
-		# cleanup
-		utils.silentremove(workdir)
-		# create work directory
+    symlink all files required to run obsproc.exe into obsproc workdir
+    '''
+    # cleanup
+    utils.silentremove(workdir)
+    # create work directory
     utils._create_directory(workdir)
 		# symlink error files
     files = ['DIR.txt', 'HEIGHT.txt', 'PRES.txt', 'RH.txt', 'TEMP.txt',
