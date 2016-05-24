@@ -16,7 +16,15 @@ class config:
   '''
   description
   '''
-  def __init__(self, wrfpy_dir):
+  def __init__(self, wrfpy_dir=False):
+    if not wrfpy_dir:
+      try:
+        # get CYLC_SUITE_DEF_PATH environment variable
+        wrfpy_dir = os.environ['CYLC_SUITE_DEF_PATH']
+      except KeyError:
+        # default back to user home dir in case CYLC is not used
+        wrfpy_dir = os.environ['HOME']
+    # config.json needs to be in base of wrfpy_dir
     self.configfile = os.path.join(wrfpy_dir, 'config.json')
     global logger
     logger = utils.start_logging(os.path.join(wrfpy_dir, 'wrfpy.log'))
@@ -29,7 +37,7 @@ class config:
       # TODO: exit and notify user to manually edit config file
     # read json config file
     self._read_json()
-    # check config file for consistenc and errors
+    # check config file for consistency and errors
     self._check_config()
 
 
@@ -91,6 +99,8 @@ class config:
     with open(self.configfile, 'r') as infile:
       #self.config = json.load(infile)
       self.config = yaml.safe_load(infile)
+
+
   def _check_config(self):
     '''
     check configuration file
@@ -259,12 +269,3 @@ class config:
     '''
     pass
 
-
-if __name__=="__main__":
-  import sys
-  #sys.excepthook = utils.excepthook
-  home = os.path.expanduser("~")  # get users homedir
-  configfile = os.path.join(home, 'config.json')
-  cf = config(configfile)
-  cf._read_json()
-  cf._check_config()
