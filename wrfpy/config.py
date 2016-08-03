@@ -16,16 +16,19 @@ class config:
   '''
   description
   '''
-  def __init__(self, wrfpy_dir=False):
-    if not wrfpy_dir:
+  def __init__(self, wrfpy_config=False):
+    if not wrfpy_config:
       try:
         # get CYLC_SUITE_DEF_PATH environment variable
         wrfpy_dir = os.environ['CYLC_SUITE_DEF_PATH']
       except KeyError:
         # default back to user home dir in case CYLC is not used
         wrfpy_dir = os.environ['HOME']
-    # config.json needs to be in base of wrfpy_dir
-    self.configfile = os.path.join(wrfpy_dir, 'config.json')
+      # config.json needs to be in base of wrfpy_dir
+      self.configfile = os.path.join(wrfpy_dir, 'config.json')
+    else:
+      utils.check_file_exists(wrfpy_config)
+      self.configfile = wrfpy_config
     global logger
     logger = utils.start_logging(os.path.join(wrfpy_dir, 'wrfpy.log'))
     logger.debug('Checking if configuration file exists: %s' %self.configfile)
@@ -38,7 +41,7 @@ class config:
     # read json config file
     self._read_json()
     # check config file for consistency and errors
-    self._check_config()
+    #self._check_config()
 
 
   def _create_empty_config(self):
