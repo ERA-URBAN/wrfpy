@@ -66,17 +66,23 @@ def return_validate(date_text, format='%Y-%m-%d_%H'):
   return date_time
 
 
-def check_file_exists(filename):
+def check_file_exists(filename, boolean=False):
   '''
   check if file exists and is readable, else raise IOError
   '''
   try:
       with open(filename) as file:
-          pass  # file exists and is readable, nothing else to do
+          if boolen:
+            return True
+          else:
+            pass  # file exists and is readable, nothing else to do
   except IOError as e:
-    # file does not exist OR no read permissions
-    logger.error('Unable to open file: %s' %filename)
-    raise  # re-raise exception
+    if boolean:
+      return False
+    else:
+      # file does not exist OR no read permissions
+      logger.error('Unable to open file: %s' %filename)
+      raise  # re-raise exception
 
 
 def validate_time_wrfout(wrfout, current_time):

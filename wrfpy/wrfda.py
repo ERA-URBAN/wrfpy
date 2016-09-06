@@ -188,9 +188,15 @@ class wrfda(config):
     os.symlink(os.path.join(
       self.config['filesystem']['wrfda_dir'],'var/da/da_wrfvar.exe'
       ), os.path.join(wrfda_workdir, 'da_wrfvar.exe'))
-    os.symlink(os.path.join(
-      self.config['filesystem']['wrfda_dir'],'var/run/be.dat.cv3'
-      ), os.path.join(wrfda_workdir, 'be.dat'))
+    if self.check_cv5():
+      # cv5:
+      os.symlink(self.config['options_wrfda']['be.dat_d0' + str(domain)],
+                 os.path.join(wrfda_workdir, 'be.dat'))
+    else:
+      # cv3
+      os.symlink(os.path.join(
+        self.config['filesystem']['wrfda_dir'],'var/run/be.dat.cv3'
+        ), os.path.join(wrfda_workdir, 'be.dat'))
     os.symlink(os.path.join(
       self.config['filesystem']['wrfda_dir'],'run/LANDUSE.TBL'
       ), os.path.join(wrfda_workdir, 'LANDUSE.TBL'))
@@ -278,7 +284,12 @@ class wrfda(config):
     wrfda_nml['wrfvar18']['analysis_date'] = obsproc_nml['record2']['time_analysis']
     wrfda_nml['wrfvar21']['time_window_min'] = obsproc_nml['record2']['time_window_min']
     wrfda_nml['wrfvar22']['time_window_max'] = obsproc_nml['record2']['time_window_max']
-    wrfda_nml['wrfvar7']['cv_options'] =  3
+    if check_cv5():
+      wrfda_nml['wrfvar7']['cv_options'] =  5
+      wrfda_nml['wrfvar6']['max_ext_its'] = 2
+      wrfda_nml['wrfvar5']['check_max_iv'] = True
+    else:
+      wrfda_nml['wrfvar7']['cv_options'] =  3
     tana = utils.return_validate(obsproc_nml['record2']['time_analysis'][:-6])
     wrfda_nml['time_control']['start_year'] = tana.year
     wrfda_nml['time_control']['start_month'] = tana.month
@@ -291,6 +302,17 @@ class wrfda(config):
     # save changes to wrfda_nml
     utils.silentremove(os.path.join(wrfda_workdir, 'namelist.input'))
     wrfda_nml.write(os.path.join(wrfda_workdir, 'namelist.input'))
+
+
+  def check_cv5(self):
+    '''
+    return True if be.dat_d0{domain} is defined for each domain in config.json
+     and all files exits, else return False
+    '''
+    return all([utils.check_file_exists(
+               self.config['options_wrfda'][
+               'be.dat_d0' + str(domain)], boolean=True
+               ) for domain in range(1, self.max_dom+1)])
 
 
   def prepare_wrfda(self):
