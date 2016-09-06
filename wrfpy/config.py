@@ -17,6 +17,9 @@ class config:
   description
   '''
   def __init__(self, wrfpy_config=False):
+    global logger
+    wrfpy_dir = os.environ['HOME']
+    logger = utils.start_logging(os.path.join(wrfpy_dir, 'wrfpy.log'))
     if not wrfpy_config:
       try:
         # get CYLC_SUITE_DEF_PATH environment variable
@@ -27,12 +30,9 @@ class config:
       # config.json needs to be in base of wrfpy_dir
       self.configfile = os.path.join(wrfpy_dir, 'config.json')
     else:
-      utils.check_file_exists(wrfpy_config)
       self.configfile = wrfpy_config
-    global logger
-    logger = utils.start_logging(os.path.join(wrfpy_dir, 'wrfpy.log'))
-    logger.debug('Checking if configuration file exists: %s' %self.configfile)
     try:
+      logger.debug('Checking if configuration file exists: %s' %self.configfile)
       utils.check_file_exists(self.configfile)
     except IOError:
       # create config file

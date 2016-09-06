@@ -8,29 +8,87 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 
 from config import config
 import utils
+import os
+import argparse
 
 class wrfpy(config):
   def __init__(self):
-    config.__init__(self)
+    results = self._cli_parser()
+    global logger
+    logger = utils.start_logging(os.path.join(os.path.expanduser("~"),
+                                              'wrfpy.log'))
+    if results['init']:
+      self._create_directory_structure(results['suitename'],
+                                        results['basedir'])
+    elif results['create']:
+      self._create_cylc_config(results['suitename'],
+                               results['basedir'])
+
+
+  def _cli_parser(self):
+    '''
+    parse command line arguments
+    '''
+    parser = argparse.ArgumentParser(
+      description='WRFpy',
+      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--init', action='store_true',
+                        help='Initialize suite')
+    parser.add_argument('--create', action='store_true',
+                        help='Create suite config')
+    parser.add_argument('--basedir', type=str,
+                        default=os.path.join(os.path.expanduser("~"),
+                        'cylc-suites'),
+                        help="basedir in which suites are installed")
+    parser.add_argument('--suitename', type=str, required=True,
+                         help='name')
+    results = vars(parser.parse_args())
+    # either initialize or create a suite, not both
+    if (results['init'] ^ results['create']):
+      return results
+    else:
+      # print error message to the user, combiniation of --init and --create
+      # is not allowed
+      print("Only one of '--init' and '--create' is allowed.")
+      exit()
+
+
+  def _create_directory_structure(self, suitename, basedir=None):
+    '''
+    Create directory structure for the Cylc configuration
+    '''
+    # set basedir to users home directory if not supplied
+    if not basedir:
+      basedir = os.path.join(os.path.expanduser("~"), 'cylc-suites')
+    # subdirectories to create
+    subdirs = ['bin' , 'control', 'doc', 'inc']
+    # create subdirectories
+    [utils._create_directory(
+     os.path.join(basedir, suitename, subdir))
+     for subdir in subdirs]
+    # create empty json config file in suite directory
+    # this does not overwrite an existing config file
+    config.__init__(self, os.path.join(
+                    basedir, suitename, 'config.json'))
+
+
+  def _create_cylc_config(self, suitename, basedir):
+    '''
+    Create cylc suite.rc configuration file based on config.json
+    '''
+    config.__init__(self, os.path.join(
+                    basedir, suitename, 'config.json'))
     suiterc = self._header()
     suiterc += self._scheduling()
     suiterc += self._runtime()
     suiterc += self._visualization()
-    self._write(suiterc)
-    import pdb; pdb.set_trace()
-
-  def _create_directory_structure(self):
-    '''
-    Create directory structure for the Cylc configuration
-    '''
-    pass
+    self._write(suiterc, os.path.join(basedir, suitename, 'suite.rc'))
 
 
   def _header(self):
     '''
     define suite.rc header information
     '''
-    # TODO: don't hardcode these variables
     start_time = utils.datetime_to_string(
       utils.return_validate(self.config['options_general']['date_start']),
       format='%Y%m%d%H')
@@ -76,7 +134,7 @@ class wrfpy(config):
         wrf_init => obsproc_init => obsproc_run
         obsproc_run => wrfda
       \"\"\"
-    # Repeat every 6 hours, starting 6 hours after initial cylce point
+    # Repeat every {incr_hour} hours, starting {incr_hour} hours after initial cylce point
     [[[+PT{incr_hour}H/PT{incr_hour}H]]]
       graph = \"\"\"
         wrf_run[-PT2H] => wrf_init => wrf_real => wrfda => copy_urb => wrf_run
@@ -143,6 +201,7 @@ class wrfpy(config):
     '''
     define suite.rc runtime information: real.exe
     '''
+    # define template
     template = """
   [[wrf_real]]
     script = \"\"\"
@@ -164,11 +223,16 @@ srun ./real.exe
       {directives}
 """
     if self.config['options_slurm']['slurm_real.exe']:
+      method = "slurm"
       with open(self.config['options_slurm']['slurm_real.exe'], 'r') as myfile:
         directives=myfile.read().replace('\n', '\n      ')
+    else:
+        method = "background"
+        directives=""
+    # context variables in template
     context = {
       "wrf_run_dir": self.config['filesystem']['wrf_run_dir'],
-      "method": "slurm",
+      "method": method,
       "directives": directives
       }
     return template.format(**context)
@@ -200,15 +264,18 @@ srun ./wrf.exe
       {directives}
 """
     if self.config['options_slurm']['slurm_wrf.exe']:
+      method = "slurm"
       with open(self.config['options_slurm']['slurm_wrf.exe'], 'r') as myfile:
         directives=myfile.read().replace('\n', '\n      ')
+    else:
+        method = "background"
+        directives=""
+    # context variables in template
     context = {
       "wrf_run_dir": self.config['filesystem']['wrf_run_dir'],
-      "method": "slurm",
+      "method": method,
       "directives": directives
       }
-    # context variables in template
-    context = {}
     return template.format(**context)
 
 
@@ -232,15 +299,19 @@ srun ./obsproc.exe
       {directives}
 """
     if self.config['options_slurm']['slurm_obsproc.exe']:
-      with open(self.config['options_slurm']['slurm_obsproc.exe'], 'r') as myfile:
+      method="slurm"
+      with open(self.config[
+                'options_slurm']['slurm_obsproc.exe'], 'r') as myfile:
         directives=myfile.read().replace('\n', '\n      ')
+    else:
+        method = "background"
+        directives=""
+    # context variables in template
     context = {
-      "obsproc_dir": self.config['filesystem']['obsproc_dir'],
-      "method": "slurm",
+      "obsproc_dir": os.path.join(self.config['filesystem']['work_dir'], 'obsproc'),
+      "method": method,
       "directives": directives
       }
-    # context variables in template
-    context = {}
     return template.format(**context)
 
 
@@ -272,11 +343,10 @@ srun ./obsproc.exe
     return template
 
 
-  def _write(self, suiterc):
+  def _write(self, suiterc, filename):
     '''
     write cylc suite.rc config to file
     '''
-    filename = "test_suiterc"
     # create the itag file and write content to it based on the template
     try:
       with open(filename, 'w') as itag:
@@ -287,8 +357,6 @@ srun ./obsproc.exe
     #logger.debug('Leave write_itag')
 
 
-
 if __name__ == "__main__":
   wrfpy()
-  
 
