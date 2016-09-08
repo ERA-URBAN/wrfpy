@@ -16,12 +16,23 @@ class config:
   '''
   description
   '''
-  def __init__(self):
-    logger = utils.start_logging('test.log')
-    home = os.path.expanduser("~")  # get users homedir
-    self.configfile = os.path.join(home, 'config.json')
-    logger.debug('Checking if configuration file exists: %s' %self.configfile)
+  def __init__(self, wrfpy_config=False):
+    global logger
+    wrfpy_dir = os.environ['HOME']
+    logger = utils.start_logging(os.path.join(wrfpy_dir, 'wrfpy.log'))
+    if not wrfpy_config:
+      try:
+        # get CYLC_SUITE_DEF_PATH environment variable
+        wrfpy_dir = os.environ['CYLC_SUITE_DEF_PATH']
+      except KeyError:
+        # default back to user home dir in case CYLC is not used
+        wrfpy_dir = os.environ['HOME']
+      # config.json needs to be in base of wrfpy_dir
+      self.configfile = os.path.join(wrfpy_dir, 'config.json')
+    else:
+      self.configfile = wrfpy_config
     try:
+      logger.debug('Checking if configuration file exists: %s' %self.configfile)
       utils.check_file_exists(self.configfile)
     except IOError:
       # create config file
@@ -29,8 +40,8 @@ class config:
       # TODO: exit and notify user to manually edit config file
     # read json config file
     self._read_json()
-    # check config file for consistenc and errors
-    self._check_config()
+    # check config file for consistency and errors
+    #self._check_config()
 
 
   def _create_empty_config(self):
@@ -91,6 +102,8 @@ class config:
     with open(self.configfile, 'r') as infile:
       #self.config = json.load(infile)
       self.config = yaml.safe_load(infile)
+
+
   def _check_config(self):
     '''
     check configuration file
@@ -184,7 +197,7 @@ class config:
     # and end_date
     assert ((self.config['options_general']['boundary_interval']*3600) < (
       end_date - start_date).total_seconds()), (
-        'boundary interval is larger than time between start_date and ' 
+        'boundary interval is larger than time between start_date and '
         'end_date')
 
 
@@ -207,7 +220,7 @@ class config:
     '''
     # verify that example namelist.wps exists and is not removed by user
     basepath = utils.get_script_path()
-    basepath = '/home/WUR/haren009/wrfpy'  # TODO: fix 
+    basepath = '/home/WUR/haren009/wrfpy'  # TODO: fix
     self.example_file = os.path.join(basepath, 'examples', 'namelist.wps')
     utils.check_file_exists(self.example_file)
     # load specified namelist
@@ -259,10 +272,3 @@ class config:
     '''
     pass
 
-
-if __name__=="__main__":
-  import sys
-  #sys.excepthook = utils.excepthook
-  cf = config()
-  cf._read_json()
-  cf._check_config()

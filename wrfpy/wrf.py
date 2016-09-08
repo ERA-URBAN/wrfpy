@@ -17,8 +17,8 @@ class run_wrf(config):
   '''
   run_wrf is a subclass of config  # TODO: use better names
   '''
-  def __init__(self, datestart, dateend):
-    config.__init__(self)
+  def __init__(self, wrfpy_dir, datestart, dateend):
+    config.__init__(self, wrfpy_dir)
     # TODO: wrf_run_dir should be flexible if running in UPP mode
     self.wrf_run_dir = self.config['filesystem']['wrf_run_dir']
     self.cleanup_previous_wrf_run()
@@ -156,9 +156,3 @@ class run_wrf(config):
         logger.error('wrf.exe failed %s:' %wrf_command)
         raise  # re-raise exception
 
-
-if __name__=="__main__":
-  datestart= datetime(2014,07,16,00)
-  dateend = datetime(2014,07,17,00)
-  wrf = run_wrf(datestart, dateend)
-  real_jid = wrf.run_real()
