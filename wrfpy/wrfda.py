@@ -306,13 +306,13 @@ class wrfda(config):
 
   def check_cv5(self):
     '''
-    return True if be.dat_d0{domain} is defined for each domain in config.json
-     and all files exits, else return False
+    return True if cv_type=5 is set and 
+    be.dat is defined (and exist on filesystem)
+    for the outer domain in config.json
     '''
-    return all([utils.check_file_exists(
-               self.config['options_wrfda'][
-               'be.dat_d0' + str(domain)], boolean=True
-               ) for domain in range(1, self.max_dom+1)])
+    if self.config['options_wrfda']['cv_type']==5:
+      return utils.check_file_exists(
+        self.config['options_wrfda']['be.dat'], boolean=True)
 
 
   def prepare_wrfda(self):
