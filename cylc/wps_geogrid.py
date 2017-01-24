@@ -5,7 +5,7 @@ import datetime
 import time
 
 def convert_time(string):
-    return datetime.datetime.strptime(string, '%Y%m%d%H')
+    return datetime.datetime.strptime(string, '%Y%m%dT%H00+02')
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('integers', metavar='N', type=str,

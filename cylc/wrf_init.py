@@ -3,8 +3,8 @@
 import argparse
 import datetime
 import time
-from wrf import run_wrf
-import utils
+from wrfpy.wrf import run_wrf
+from wrfpy import utils
 
 
 def main(datestring, interval):

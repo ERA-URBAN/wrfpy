@@ -4,7 +4,7 @@ import argparse
 import datetime
 import time
 import utils
-from config import config
+from wrfpy.config import config
 import os
 #from urb import urb
 import shutil
