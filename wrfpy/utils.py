@@ -72,7 +72,7 @@ def check_file_exists(filename, boolean=False):
   '''
   try:
       with open(filename) as file:
-          if boolen:
+          if boolean:
             return True
           else:
             pass  # file exists and is readable, nothing else to do

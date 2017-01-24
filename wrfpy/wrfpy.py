@@ -6,7 +6,7 @@ license:        APACHE 2.0
 author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 '''
 
-from config import config
+from wrfpy.config import config
 import utils
 import os
 import argparse
