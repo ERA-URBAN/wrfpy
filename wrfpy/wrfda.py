@@ -10,8 +10,8 @@ import os
 import f90nml
 import subprocess
 import shutil
-import utils
-from config import config
+from wrfpy import utils
+from wrfpy.config import config
 from datetime import datetime
 import time
 
@@ -104,7 +104,7 @@ class wrfda(config):
                                        'namelist.input'))
 		# initialize variables
     obsnames, obsproc_workdirs = [], []
-		# 
+		#
     for dom in range(1, self.max_dom + 1):
       try:
         obsname = self.config['filesystem']['obs_filename_d' + str(dom)]
@@ -136,10 +136,10 @@ class wrfda(config):
     files = ['DIR.txt', 'HEIGHT.txt', 'PRES.txt', 'RH.txt', 'TEMP.txt',
 		         'UV.txt', 'obserr.txt']
     for fl in files:
-      os.symlink(os.path.join(self.obsproc_dir, fl), 
+      os.symlink(os.path.join(self.obsproc_dir, fl),
                  os.path.join(workdir, fl))
     # symlink obsproc.exe
-    os.symlink(os.path.join(self.obsproc_dir, 'src', 'obsproc.exe'), 
+    os.symlink(os.path.join(self.obsproc_dir, 'src', 'obsproc.exe'),
                os.path.join(workdir, 'obsproc.exe'))
 
 

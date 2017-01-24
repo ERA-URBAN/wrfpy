@@ -14,10 +14,11 @@ setup(
                    " (WRF) simulations."),
     license = "Apache 2.0",
     keywords = "WRF cylc workflow WRFDA",
-    url = "https://github.com/rvanharen/wrfpy",
+    url = "https://github.com/ERA-URBAN/wrfpy",
     packages=['wrfpy'],
     include_package_data = True,    # include everything in source control
     package_data={'wrfpy': ['cylc/*.py']},
+    scripts=['wrfpy/wrfpy'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

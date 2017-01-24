@@ -6,7 +6,7 @@ license:        APACHE 2.0
 author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 '''
 
-import utils
+from wrfpy import utils
 import glob
 import subprocess
 import os

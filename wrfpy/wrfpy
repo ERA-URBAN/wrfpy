@@ -9,8 +9,8 @@ author:		    Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 import os
 import argparse
 import errno
-import utils
-from config import config
+from wrfpy import utils
+from wrfpy.config import config
 
 class wrfpy(config):
   '''
@@ -53,7 +53,7 @@ class wrfpy(config):
     # symlink cylc executables to cylc bin directory
     # TODO
     # create confis.json in self.wrfpy_dir
-    config.__init__(self, self.wrfpy_dir)
+    config.__init__(self, os.path.join(self.wrfpy_dir, 'config.json'))
 
     
 def main():

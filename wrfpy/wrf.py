@@ -6,12 +6,12 @@ license:        APACHE 2.0
 author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 '''
 
-from config import config
+from wrfpy.config import config
 from datetime import datetime
 import glob
 import os
 import f90nml
-import utils
+from wrfpy import utils
 
 class run_wrf(config):
   '''

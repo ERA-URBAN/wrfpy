@@ -6,13 +6,13 @@ license:        APACHE 2.0
 author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 '''
 
-import utils
+from wrfpy import utils
 import glob
 import subprocess
 import os
 import errno
 import f90nml
-from config import config
+from wrfpy.config import config
 from datetime import datetime
 import shutil
 

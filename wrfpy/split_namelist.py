@@ -8,10 +8,10 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 
 import f90nml
 import copy
-import mpl_toolkits.basemap.pyproj as pyproj 
-from config import config
+import mpl_toolkits.basemap.pyproj as pyproj
+from wrfpy.config import config
 import os
-import utils
+from wrfpy import utils
 
 class split_nml_shared(config):
   '''
