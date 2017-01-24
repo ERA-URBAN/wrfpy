@@ -130,15 +130,15 @@ class wrfpy(config):
     # Initial cycle point
     [[[R1/T{start_hour}]]]
       graph = \"\"\"
-        wrf_init => wrf_real => wrfda => wrf_run
-        wrf_init => obsproc_init => obsproc_run
+        init => wrf_real => wrfda => wrf_run
+        init => obsproc_run
         obsproc_run => wrfda
       \"\"\"
     # Repeat every {incr_hour} hours, starting {incr_hour} hours after initial cylce point
     [[[+PT{incr_hour}H/PT{incr_hour}H]]]
       graph = \"\"\"
-        wrf_run[-PT2H] => wrf_init => wrf_real => wrfda => copy_urb => wrf_run
-        wrf_init => obsproc_init => obsproc_run
+        wrf_run[-PT2H] => init => wrf_real => wrfda => copy_urb => wrf_run
+        init => obsproc_run
         obsproc_run => wrfda
       \"\"\"
 
@@ -205,14 +205,7 @@ class wrfpy(config):
     template = """
   [[wrf_real]]
     script = \"\"\"
-#!/usr/bin/env bash
-if [ -n "$SLURM_CPUS_PER_TASK" ]; then
-  omp_threads=$SLURM_CPUS_PER_TASK
-else
-  omp_threads=1
-fi
-export OMP_NUM_THREADS=$omp_threads
-srun ./real.exe
+{command}
 \"\"\"
     [[[environment]]]
       WORKDIR = {wrf_run_dir}
@@ -222,15 +215,33 @@ srun ./real.exe
     [[[directives]]]
       {directives}
 """
-    if self.config['options_slurm']['slurm_real.exe']:
-      method = "slurm"
-      with open(self.config['options_slurm']['slurm_real.exe'], 'r') as myfile:
-        directives=myfile.read().replace('\n', '\n      ')
-    else:
-        method = "background"
-        directives=""
+    try:
+      if self.config['options_slurm']['slurm_real.exe']:
+        method = "slurm"
+        command="""#!/usr/bin/env bash
+if [ -n "$SLURM_CPUS_PER_TASK" ]; then
+  omp_threads=$SLURM_CPUS_PER_TASK
+else
+  omp_threads=1
+fi
+export OMP_NUM_THREADS=$omp_threads
+srun ./real.exe"""
+        with open(self.config['options_slurm']['slurm_real.exe'], 'r') as myfile:
+          directives=myfile.read().replace('\n', '\n      ')
+      else:
+          method = "background"
+          command="""#!/usr/bin/env bash
+./real.exe"""
+          directives=""
+    except KeyError:
+      # slurm_real.exe not found in config.json, default to background
+      method = "background"
+      command="""#!/usr/bin/env bash
+./real.exe"""
+      directives=""
     # context variables in template
     context = {
+      "command": command,
       "wrf_run_dir": self.config['filesystem']['wrf_run_dir'],
       "method": method,
       "directives": directives
@@ -246,14 +257,7 @@ srun ./real.exe
     template = """
   [[wrf_run]]
     script = \"\"\"
-#!/usr/bin/env bash
-if [ -n "$SLURM_CPUS_PER_TASK" ]; then
-  omp_threads=$SLURM_CPUS_PER_TASK
-else
-  omp_threads=1
-fi
-export OMP_NUM_THREADS=$omp_threads
-srun ./wrf.exe
+{command}
 \"\"\"
     [[[environment]]]
       WORKDIR = {wrf_run_dir}
@@ -263,15 +267,33 @@ srun ./wrf.exe
     [[[directives]]]
       {directives}
 """
-    if self.config['options_slurm']['slurm_wrf.exe']:
-      method = "slurm"
-      with open(self.config['options_slurm']['slurm_wrf.exe'], 'r') as myfile:
-        directives=myfile.read().replace('\n', '\n      ')
-    else:
-        method = "background"
-        directives=""
+    try:
+      if self.config['options_slurm']['slurm_wrf.exe']:
+        method = "slurm"
+        command = """#!/usr/bin/env bash
+if [ -n "$SLURM_CPUS_PER_TASK" ]; then
+  omp_threads=$SLURM_CPUS_PER_TASK
+else
+  omp_threads=1
+fi
+export OMP_NUM_THREADS=$omp_threads
+srun ./wrf.exe"""
+        with open(self.config['options_slurm']['slurm_wrf.exe'], 'r') as myfile:
+          directives=myfile.read().replace('\n', '\n      ')
+      else:
+          method = "background"
+          directives=""
+          command = """#!/usr/bin/env bash
+./wrf.exe"""
+    except KeyError:
+      # slurm_real.exe not found in config.json, default to background
+      method = "background"
+      directives=""
+      command = """#!/usr/bin/env bash
+./wrf.exe"""
     # context variables in template
     context = {
+      "command": command,
       "wrf_run_dir": self.config['filesystem']['wrf_run_dir'],
       "method": method,
       "directives": directives
@@ -287,8 +309,7 @@ srun ./wrf.exe
     template = """
   [[obsproc_run]]
     script = \"\"\"
-#!/usr/bin/env bash
-srun ./obsproc.exe
+{command}
 \"\"\"
     [[[environment]]]
       WORKDIR = {obsproc_dir}
@@ -298,16 +319,28 @@ srun ./obsproc.exe
     [[[directives]]]
       {directives}
 """
-    if self.config['options_slurm']['slurm_obsproc.exe']:
-      method="slurm"
-      with open(self.config[
-                'options_slurm']['slurm_obsproc.exe'], 'r') as myfile:
-        directives=myfile.read().replace('\n', '\n      ')
-    else:
-        method = "background"
-        directives=""
+    try:
+      if self.config['options_slurm']['slurm_obsproc.exe']:
+        method="slurm"
+        command="""#!/usr/bin/env bash
+srun ./obsproc.exe"""
+        with open(self.config[
+                  'options_slurm']['slurm_obsproc.exe'], 'r') as myfile:
+          directives=myfile.read().replace('\n', '\n      ')
+      else:
+          method = "background"
+          command="""#!/usr/bin/env bash
+./obsproc.exe"""
+          directives=""
+    except KeyError:
+      # slurm_real.exe not found in config.json, default to background
+      method = "background"
+      command="""#!/usr/bin/env bash
+./obsproc.exe"""
+      directives=""
     # context variables in template
     context = {
+      "command": command,
       "obsproc_dir": os.path.join(self.config['filesystem']['work_dir'], 'obsproc'),
       "method": method,
       "directives": directives
