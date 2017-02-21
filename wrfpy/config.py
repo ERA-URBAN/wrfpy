@@ -55,7 +55,7 @@ class config:
     keys_upp = ['upp', 'upp_interval']
     keys_wrfda = ['wrfda', 'wrfda_type', 'cv', 'be.dat']
     keys_general = ['date_start', 'date_end', 'boundary_interval', 'ref_lon',
-                    'ref_lat', 'run_hours']
+                    'ref_lat']
     keys_wps = ['namelist.wps']
     keys_slurm = ['slurm_real.exe', 'slurm_wrf.exe', 'slurm_ungrib.exe',
                   'slurm_metgrid.exe', 'slurm_geogrid.exe',
