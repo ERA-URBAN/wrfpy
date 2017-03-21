@@ -19,8 +19,9 @@ class wrfda(config):
   '''
   description
   '''
-  def __init__(self):
+  def __init__(self, low_only=False):
     config.__init__(self)  # load config
+    self.low_only = low_only
     self.rundir = self.config['filesystem']['wrf_run_dir']
     self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'],
                                       'wrfda')
@@ -250,11 +251,15 @@ class wrfda(config):
   def prepare_wrfda_namelist(self, domain):
     # set domain specific workdir
     wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
-    # read WRFDA namelist
-    wrfda_namelist = os.path.join(self.config['filesystem']['wrfda_dir'],
-                                  'var/test/tutorial/namelist.input')
+    # read WRFDA namelist, use namelist.wrfda as supplied in config.json
+    # if not supplied, fall back to default from WRFDA
+    if utils.check_file_exists(self.config['wrfda']['namelist.wrfda'],
+                               boolean=True):
+      wrfda_namelist = self.config['wrfda']['namelist.wrfda']
+    else:
+      wrfda_namelist = os.path.join(self.config['filesystem']['wrfda_dir'],
+                                    'var/test/tutorial/namelist.input')
     wrfda_nml = f90nml.read(wrfda_namelist)
-
     # read WRF namelist in WRF work_dir
     wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
                                        'namelist.input'))
@@ -466,9 +471,12 @@ class wrfda(config):
                       os.path.join(self.rundir, 'wrfbdy_d01'))
       # copy wrfvar_output_d0${domain} to ${RUNDIR}/wrfinput_d0${domain}
       utils.silentremove(os.path.join(self.rundir ,'wrfinput_d0' + str(domain)))
-      shutil.copyfile(os.path.join(wrfda_workdir, 'wrfvar_output'),
-                      os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
-
+      if not self.low_only:
+        shutil.copyfile(os.path.join(wrfda_workdir, 'wrfvar_output'),
+                        os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
+      else:
+        shutil.copyfile(os.path.join(wrfda_workdir, 'fg'),
+                        os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
 
 
 if __name__ == "__main__":

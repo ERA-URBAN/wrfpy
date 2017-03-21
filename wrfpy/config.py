@@ -53,7 +53,7 @@ class config:
                 'archive_dir', 'boundary_dir', 'upp_archive_dir', 'work_dir']
     keys_wrf = ['namelist.input']
     keys_upp = ['upp', 'upp_interval']
-    keys_wrfda = ['wrfda', 'wrfda_type', 'cv', 'be.dat']
+    keys_wrfda = ['namelist.wrfda', 'wrfda', 'wrfda_type', 'cv', 'be.dat']
     keys_general = ['date_start', 'date_end', 'boundary_interval', 'ref_lon',
                     'ref_lat']
     keys_wps = ['namelist.wps']
@@ -140,7 +140,7 @@ class config:
       raise IOError(message)
 
 
-  def _check_wrda_dir(self):
+  def _check_wrfda_dir(self):
     '''
     check if the wrfda directory exist
     check if obsproc.exe and da_wrfvar.exe executables exist in the wrfda
