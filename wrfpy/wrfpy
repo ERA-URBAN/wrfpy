@@ -137,7 +137,7 @@ class wrfpy(config):
     # Repeat every {incr_hour} hours, starting {incr_hour} hours after initial cylce point
     [[[+PT{incr_hour}H/PT{incr_hour}H]]]
       graph = \"\"\"
-        wrf_run[-PT2H] => init => wrf_real => wrfda => copy_urb => wrf_run
+        wrf_run[-PT{incr_hour}H] => init => wrf_real => wrfda => copy_urb => wrf_run
         init => obsproc_run
         obsproc_run => wrfda
       \"\"\"
