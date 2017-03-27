@@ -221,7 +221,11 @@ def testjob(id):
 
 def convert_cylc_time(string):
     import datetime
-    return datetime.datetime.strptime(string, '%Y%m%dT%H00+01')
+    import dateutil.parser
+    try:
+        return datetime.datetime.strptime(string, '%Y%m%dT%H00+01')
+    except ValueError:
+        return dateutil.parser.parse(string)
 
 
 def get_max_dom():
