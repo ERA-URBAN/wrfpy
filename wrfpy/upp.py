@@ -12,14 +12,13 @@ import subprocess
 import os
 import errno
 
-class upp:
+class upp(config):
   '''
   Runs the Universal Post Processor (UPP) for requested time steps in
   a wrfout file
   '''
   def __init__(self):
-    #self.logger = utils.get_logger()
-    logger.info('*** RUNNING UNIVERSAL POST PROCESSOR ***')
+    config.__init__(self, wrfpy_dir)
     self._set_variables()
     self._initialize()
     self._prepare_post_dir()
@@ -28,29 +27,22 @@ class upp:
 
   def _set_variables(self):
     '''
-    Define control variables for the unipost.exe tool, inherit from
-    global config. Variables are stored in a dictionary called config
+    Define additional control variables for the unipost.exe tool, inherit from
+    global config.
     '''
-    # hardcode for now for testing purposes.
-    global config
-    config = {}
-    config['upp_archive_dir'] = '/home/WUR/haren009/sources/upp_archive'
-    config['upp_dir'] = '/home/WUR/haren009/sources/UPPV3.0'
-    config['crtm_dir'] = os.path.join(config['upp_dir'],
-                                     'src/lib/crtm2/src/fix')
-    config['upp_domain_dir'] = '/home/WUR/haren009/sources/test/DOMAINS/test_case'
-    config['post_dir'] = os.path.join(config['upp_domain_dir'], 'postprd')
-    config['wrf_run_dir'] = '/home/WUR/haren009/sources/WRFV3/run'
+    self.crtm_dir = os.path.join(self.config['upp_dir'], 'src/lib/crtm2/src/fix')
+    self.post_dir = os.path.join(self.config['filesystem']['upp_dir'], 'postprd')
 
   def _initialize(self):
     '''
     Check if archive dir exists, create if not.
     The archive dir is used to ...
     '''
-    utils._create_directory(config['upp_archive_dir'])  # create archive dir
+    # create archive dir
+    utils._create_directory(self.config['filesystem']['upp_archive_dir'])
     # create post_dir (remove old one if needed)
-    utils.silentremove(config['post_dir'])
-    utils._create_directory(config['post_dir'])
+    utils.silentremove(self.post_dir)
+    utils._create_directory(self.post_dir)
 
 
 
@@ -58,10 +50,10 @@ class upp:
     '''
     Create and prepare post_dir
     '''
-    logger.debug('Preparing postprd directory: %s' %config['post_dir'])
+    #logger.debug('Preparing postprd directory: %s' %config['post_dir'])
 
-    # create config['post_dir'] if it does not exist yet
-    utils._create_directory(config['post_dir'])
+    # create self.post_dir if it does not exist yet
+    utils._create_directory(self.post_dir)
 
     # Link all the relevant files need to compute various diagnostics
     relpath_to_link = ['EmisCoeff/Big_Endian/EmisCoeff.bin',
@@ -106,26 +98,26 @@ class upp:
                        'SpcCoeff/Big_Endian/v.seviri_m10.SpcCoeff.bin']
 
     # abspath coefficients for crtm2 (simulated synthetic satellites)
-    abspath_coeff= [os.path.join(config['crtm_dir'], relpath) for relpath in
+    abspath_coeff= [os.path.join(self.crtm_dir, relpath) for relpath in
                     relpath_to_link ]
     # abspath wrf_cntrl param file
-    abspath_pf = os.path.join(config['upp_domain_dir'], 'parm',
+    abspath_pf = os.path.join(self.config['filesystem']['upp_dir'], 'parm',
                               'wrf_cntrl.parm')
     # concatenate lists of paths
     abspath_to_link = abspath_coeff + [abspath_pf]
     # create a symlink for every file in abspath_to_link
     for fl in abspath_to_link:
       utils.check_file_exists(fl)  # check if file exist and is readable
-      os.symlink(fl, os.path.join(config['post_dir'], os.path.basename(fl)))
+      os.symlink(fl, os.path.join(self.post_dir, os.path.basename(fl)))
     # symlink wrf_cntrl.parm to config['post_dir']/fort.14
-    os.symlink(abspath_pf, os.path.join(config['post_dir'], 'fort.14'))
+    os.symlink(abspath_pf, os.path.join(self.post_dir, 'fort.14'))
     # symlink microphysic's tables - code used is based on mp_physics option
     # used in the wrfout file
-    os.symlink(os.path.join(config['wrf_run_dir'], 'ETAMPNEW_DATA'),
-               os.path.join(config['post_dir'], 'nam_micro_lookup.dat'))
-    os.symlink(os.path.join(config['wrf_run_dir'],
+    os.symlink(os.path.join(self.config['filesystem']['wrf_run_dir'], 'ETAMPNEW_DATA'),
+               os.path.join(self.post_dir, 'nam_micro_lookup.dat'))
+    os.symlink(os.path.join(self.config['filesystem']['wrf_run_dir'],
                             'ETAMPNEW_DATA.expanded_rain'
-                            ), os.path.join(config['post_dir'],
+                            ), os.path.join(self.post_dir,
                                             'hires_micro_lookup.dat'))
 
 
@@ -133,25 +125,25 @@ class upp:
     '''
     Set environment variables
     '''
-    logger.debug('Enter set_environment_variables')
+    #logger.debug('Enter set_environment_variables')
     os.environ['MP_SHARED_MEMORY'] = 'yes'
     os.environ['MP_LABELIO'] = 'yes'
     os.environ['tmmark'] = 'tm00'
-    logger.debug('Leave set_environment_variables')
+    #logger.debug('Leave set_environment_variables')
 
 
   def _cleanup_output_files(self):
     '''
     Clean up old output files in post_dir
     '''
-    logger.debug('Enter cleanup_output_files')
+    #logger.debug('Enter cleanup_output_files')
     file_ext = [ '*.out', '*.tm00', 'fort.110', 'itag']
     files_found = [ f for files in [
-      glob.glob(os.path.join(config['post_dir'], ext))
+      glob.glob(os.path.join(self.post_dir, ext))
       for ext in file_ext ] for f in files]
     # try to remove files, raise exception if needed
     [ utils.silentremove(fl) for fl in files_found ]
-    logger.debug('Leave cleanup_output_files')
+    #logger.debug('Leave cleanup_output_files')
 
 
   def _write_itag(self, wrfout, current_time):
@@ -164,10 +156,10 @@ class upp:
       Fourth line is the model identifier (WRF, NMM)
       -----------------------------------------------------------------
     '''
-    logger.debug('Enter write_itag')
-    logger.debug('Time in itag file is: %s' %current_time)
+    #logger.debug('Enter write_itag')
+    #logger.debug('Time in itag file is: %s' %current_time)
     # set itag filename and cleanup
-    filename = os.path.join(config['post_dir'], 'itag')
+    filename = os.path.join(self.post_dir, 'itag')
     utils.silentremove(filename)
     # template of itag file
     template = """{wrfout}
@@ -185,9 +177,10 @@ NCAR
       with open(filename, 'w') as itag:
         itag.write(template.format(**context))
     except IOError as e:
-      logger.error('Unable to write itag file: %s' %filename)
+      #logger.error('Unable to write itag file: %s' %filename)
+      print('Unable to write itag file: %s' %filename)
       raise  # re-raise exception
-    logger.debug('Leave write_itag')
+    #logger.debug('Leave write_itag')
 
 
   def _run_unipost_step(self, wrfout, current_time, thours):
@@ -211,11 +204,8 @@ NCAR
     # write itag file
     self._write_itag(wrfout, current_time)
     # run unipost.exe
-    # TODO: should be a call directly to uniposte.exe instead of a script uni.exe
-    # TODO: uni.exe load ifort modules, calls unipost.exe and reloads gfort modules
-    # TODO: should fix compilation of numpy/netCDF4 with intel compiler
-    subprocess.check_call(os.path.join(config['upp_dir'], 'bin', 'uni.exe'),
-                          cwd=config['post_dir'], stdout=utils.devnull(),
+    subprocess.check_call(os.path.join(self.config['filesystem']['upp_dir'], 'bin', 'unipost.exe'),
+                          cwd=self.post_dir, stdout=utils.devnull(),
                           stderr=utils.devnull())
     # rename and archive output
     self._archive_output(current_time, thours, domain)
@@ -239,7 +229,7 @@ NCAR
     # modulo  should be zero
     if not td[-1]%frequency==0:
       message = ''  # TODO: add error message
-      logger.error(message)
+      #logger.error(message)
       raise IOError(message)
     else:
       # create list of booleans where module is 0
@@ -261,24 +251,21 @@ NCAR
     # verify that domain is an int
     if not isinstance(domain, int):
       message = 'domain id should be an integer'
-      logger.error(message)
+      #logger.error(message)
       raise IOError(message)
     # define original and destination filename
     origname = 'WRFPRS%02d.tm00' %thours
     outname = 'wrfpost_d%02d_%s.grb' %(domain, current_time)
     # rename file and move to archive dir
-    shutil.move(os.path.join(config['post_dir'], origname),
-                os.path.join(config['upp_archive_dir'], outname))
+    shutil.move(os.path.join(self.post_dir, origname),
+                os.path.join(self.config['filesystem']['upp_archive_dir'], outname))
     # check if file is indeed archived
-    utils.check_file_exists(os.path.join(config['upp_archive_dir'], outname))
+    utils.check_file_exists(os.path.join(self.config['filesystem']['upp_archive_dir'], outname))
 
 
 if __name__ == "__main__":
-  logger = utils.start_logging('test.log')
   postprocess = upp()
-  wrfout_files = glob.glob(os.path.join(config['wrf_run_dir'], 'wrfout_d01*'))
+  wrfout_files = glob.glob(os.path.join(self.config['filesystem']['wrf_run_dir'], 'wrfout_d01*'))
   postprocess.run_unipost_file(wrfout_files[0], use_t0=True)
   [postprocess.run_unipost_file(f) for f in wrfout_files[1:]]
 
-  #postprocess.run_unipost_file(
-  #  '/home/WUR/haren009/sources/WRFV3/run/wrfout_d01_2014-07-16_00:00:00')
