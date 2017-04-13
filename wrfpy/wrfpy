@@ -79,6 +79,7 @@ class wrfpy(config):
     config.__init__(self, os.path.join(
                     basedir, suitename, 'config.json'))
     self.incr_hour = self.config['options_general']['run_hours']
+    self.wps_interval_hours = self.config['options_wps']['run_hours']
     suiterc = self._header()
     suiterc += self._scheduling()
     suiterc += self._runtime()
@@ -130,7 +131,7 @@ class wrfpy(config):
     # Initial cycle point
     [[[R1/T{start_hour}]]]
       graph = \"\"\"
-        wrf_init => wrf_real => wrfda => wrf_run => upp
+        wrf_init => wps => wrf_real => wrfda => wrf_run => upp
         obsproc_init => obsproc_run => wrfda
       \"\"\"
     # Repeat every {incr_hour} hours, starting {incr_hour} hours after initial cylce point
@@ -139,11 +140,17 @@ class wrfpy(config):
         wrf_run[-PT{incr_hour}H] => wrf_init => wrf_real => wrfda => wrf_run => upp
         wrfda[-PT{incr_hour}H] => obsproc_init => obsproc_run => wrfda
       \"\"\"
+    # Repeat every {wps_incr_hour} hours, starting {wps_incr_hour} hours after initial cylce point
+    [[[+PT{wps_incr_hour}H/PT{wps_incr_hour}H]]]
+      graph = \"\"\"
+        wps[-PT{wps_incr_hour}H] => wps
+      \"\"\"
 """
     # context variables in template
     context = {
       "start_hour": start_hour,
-      "incr_hour": self.incr_hour
+      "incr_hour": self.incr_hour,
+      "wps_incr_hour": self.wps_interval_hours
       }
     return template.format(**context)
 
@@ -155,7 +162,8 @@ class wrfpy(config):
     return (self._runtime_base() + self._runtime_init_wrf() +
             self._runtime_init_obsproc() + self._runtime_real() +
             self._runtime_wrf() + self._runtime_obsproc() +
-            self._runtime_wrfda() + self._runtime_upp())
+            self._runtime_wrfda() + self._runtime_upp() +
+            self._runtime_wps())
 
 
   def _runtime_base(self):
@@ -462,7 +470,7 @@ import wrfpy.upp as upp
 import wrfpy.utils as utils
 import os
 postprocess = upp()
-# get datetime object for currenct cycle point
+# get datetime object for current cycle point
 dt = utils.convert_cylc_time(os.environ('CYLC_TASK_CYCLE_POINT'))
 # construct wrfout name for domain 1
 dt_str = dt.strftime('%Y-%m-%d_%H:%M:%S')
@@ -475,6 +483,83 @@ else:
   postprocess.run_unipost_file(wrfout_files[0], use_t0=False)"""
     context = {
       "command": command,
+      "method": "background",
+      "directives": ""
+      }
+    return template.format(**context)
+
+  def _runtime_wps(self):
+    '''
+    define suite.rc runtime information: wrfda
+    '''
+    # define template
+    template = """
+  [[wps]]
+    pre-script = \"\"\"
+{pre_command}
+\"\"\"
+    script = \"\"\"
+{command}
+\"\"\"
+    post-script = \"\"\"
+{post_command}
+\"\"\"
+    [[[environment]]]
+    [[[job submission]]]
+      method = {method}
+    [[[directives]]]
+      {directives}
+"""
+    pre_command="""#!/usr/bin/env python
+from wrfpy import wps
+from wrfpy import utils
+from wrfpy.config import config
+import os
+config.__init__(self)
+datestart = utils.convert_cylc_time(os.environ('$CYLC_TASK_CYCLE_POINT'))
+dateend = datestart + datetime.timedelta(hours=self.config['options_wps']['run_hours'])
+boundarydir = self.config['filesystem']['boundary_dir']
+WPS = wps(datestart, dateend, boundarydir)  # initialize object
+WPS._initialize()"""
+    command="""#!/usr/bin/env bash
+ungrib/ungrib.exe
+metgrid/metgrid.exe"""
+    post_command="""#!/usr/bin/env python
+from wrfpy.config import config
+import os
+import glob
+import shutil
+config.__init__(self)
+rundir = self.config['filesystem']['wrf_run_dir']
+wpsdir = os.path.join(self.config['filesystem']['work_dir'], 'wps')
+## wrf run dir
+# cleanup old met_em files
+# create list of files to remove
+#files = [glob.glob(os.path.join(rundir, ext))
+#         for ext in ['met_em*']]
+# flatten list
+#files_flat = [item for sublist in files for item in sublist] 
+# remove files silently
+#[ utils.silentremove(filename) for filename in files_flat ]
+# copy new met_em files
+# create list of files to copy
+files = [glob.glob(os.path.join(wpsdir, ext))
+         for ext in ['met_em*']]
+# flatten list
+files_flat = [item for sublist in files for item in sublist]
+[ shutil.copyfile(filename, os.path.join(rundir, os.path.basename(filename))) for filename in files_flat ]
+## wps workdir
+# create list of files to remove
+files = [glob.glob(os.path.join(wpsdir, ext))
+         for ext in ['met_em*', 'FILE*', 'PFILE*', 'GRIBFILE*']]
+# flatten list
+files_flat = [item for sublist in files for item in sublist]
+# remove files silently
+[ utils.silentremove(filename) for filename in files_flat ]"""
+    context = {
+      "pre_command": pre_command,
+      "command": command,
+      "post_command": post_command,
       "method": "background",
       "directives": ""
       }

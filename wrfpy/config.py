@@ -52,11 +52,11 @@ class config:
     keys_dir = ['wrf_dir', 'wrf_run_dir', 'wrfda_dir', 'upp_dir', 'wps_dir',
                 'archive_dir', 'boundary_dir', 'upp_archive_dir', 'work_dir']
     keys_wrf = ['namelist.input']
-    keys_upp = ['upp', 'upp_interval', 'upp_archive_dir']
+    keys_upp = ['upp', 'upp_interval']
     keys_wrfda = ['namelist.wrfda', 'wrfda', 'wrfda_type', 'cv', 'be.dat']
     keys_general = ['date_start', 'date_end', 'boundary_interval', 'ref_lon',
                     'ref_lat']
-    keys_wps = ['namelist.wps']
+    keys_wps = ['namelist.wps', 'run_hours']
     keys_slurm = ['slurm_real.exe', 'slurm_wrf.exe', 'slurm_ungrib.exe',
                   'slurm_metgrid.exe', 'slurm_geogrid.exe',
                   'slurm_obsproc.exe', 'slurm_updatebc.exe',
@@ -222,7 +222,6 @@ class config:
     '''
     # verify that example namelist.wps exists and is not removed by user
     basepath = utils.get_script_path()
-    basepath = '/home/WUR/haren009/wrfpy'  # TODO: fix
     self.example_file = os.path.join(basepath, 'examples', 'namelist.wps')
     utils.check_file_exists(self.example_file)
     # load specified namelist
