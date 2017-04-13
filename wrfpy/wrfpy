@@ -103,10 +103,6 @@ class wrfpy(config):
 {{% set START = "{start_time}" %}}
 {{% set STOP  = "{end_time}" %}}
 
-[cylc]
-  # set required cylce point format
-  cycle point format = %Y%m%d%H
-
 """
     # context variables in template
     context = {
@@ -394,6 +390,7 @@ srun ./obsproc.exe"""
 {command}
 \"\"\"
     [[[environment]]]
+      WORKDIR = {wrfda_dir}
       CYLC_TASK_WORK_DIR = $WORKDIR
     [[[job submission]]]
       method = {method}
@@ -416,6 +413,7 @@ srun ./obsproc.exe"""
       directives=""
     # context variables in template
     context = {
+      "wrfda_dir": os.path.join(self.config['filesystem']['work_dir'], 'wrfda'),
       "command": command,
       "method": method,
       "directives": directives
@@ -463,6 +461,8 @@ srun ./obsproc.exe"""
 {post_command}
 \"\"\"
     [[[environment]]]
+      WORKDIR = {wps_workdir}
+      CYLC_TASK_WORK_DIR = $WORKDIR
     [[[job submission]]]
       method = {method}
     [[[directives]]]
@@ -473,12 +473,16 @@ srun ./obsproc.exe"""
       "wps_run_hours": self.wps_interval_hours,
     }
     command="""#!/usr/bin/env bash
-ungrib/ungrib.exe
-metgrid/metgrid.exe"""
+{wps_dir}/ungrib/ungrib.exe
+{wps_dir}/metgrid/metgrid.exe"""
+    command_context = {
+      "wps_dir": self.config['filesystem']['wps_dir']
+    }
     post_command="wps_post.py"
     context = {
+      "wps_workdir": os.path.join(self.config['filesystem']['work_dir'], 'wps'),
       "pre_command": pre_command.format(**pre_command_context),
-      "command": command,
+      "command": command.format(**command_context),
       "post_command": post_command,
       "method": "background",
       "directives": ""

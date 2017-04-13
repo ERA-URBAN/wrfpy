@@ -84,7 +84,7 @@ class wps(config):
     link boundary grib files to wps work directory with the required naming
     '''
     # get list of files to link
-    filelist = glob.glob(os.path.join(self.config['filesystem']['upp_archive_dir'], '*'))
+    filelist = glob.glob(os.path.join(self.config['filesystem']['boundary_dir'], '*'))
     # make sure we only have files
     filelist = [fl for fl in filelist if os.path.isfile(fl)]
     if len(filelist) == 0:
@@ -132,8 +132,7 @@ class wps(config):
     link the required Vtable
     '''
     utils.silentremove(os.path.join(self.wps_workdir, 'Vtable'))
-    # TODO: make vtable depend on the boundary source
-    vtable =  'Vtable.GFS'
+    vtable =  self.config['options_wps']['vtable']
     vtable_path = os.path.join(self.config['filesystem']['wps_dir'], 'ungrib',
                           'Variable_Tables', vtable)
     os.symlink(vtable_path, os.path.join(self.wps_workdir, 'Vtable'))
