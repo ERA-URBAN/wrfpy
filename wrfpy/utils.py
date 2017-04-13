@@ -59,7 +59,7 @@ def return_validate(date_text, format='%Y-%m-%d_%H'):
   '''
   from datetime import datetime
   try:
-    date_time = datetime.strptime(date_text, format)
+    date_time = datetime.strptime(date_text, format).replace(tzinfo=None)
   except ValueError:
     logger.error('Incorrect date format, should be %s' %format)
     raise ValueError('Incorrect date format, should be %s' %format)
@@ -223,21 +223,17 @@ def convert_cylc_time(string):
     import datetime
     import dateutil.parser
     try:
-        return datetime.datetime.strptime(string, '%Y%m%dT%H00+01')
+        return datetime.datetime.strptime(string, '%Y%m%dT%H00+01').replace(tzinfo=None)
     except ValueError:
-        return dateutil.parser.parse(string)
+        return dateutil.parser.parse(string).replace(tzinfo=None)
 
 
-def get_max_dom():
+def get_max_dom(namelist):
     '''
     get maximum domain number from WRF namelist.input
     '''
     import f90nml
-    from config import config
-    CONFIG = config()
-    CONFIG.__init__()  # load config
-    wrf_nml = f90nml.read(os.path.join(CONFIG.config['filesystem']['wrf_run_dir'],
-                                       'namelist.input'))
+    wrf_nml = f90nml.read(namelist)
     # maximum domain number
     return wrf_nml['domains']['max_dom']
 

@@ -3,7 +3,7 @@
 import argparse
 import datetime
 import time
-import utils
+from wrfpy import utils
 from wrfpy.wrfda import wrfda
 
 def obsproc_init(datestart):
