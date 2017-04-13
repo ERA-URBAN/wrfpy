@@ -475,7 +475,7 @@ else:
   postprocess.run_unipost_file(wrfout_files[0], use_t0=False)"""
     context = {
       "command": command,
-      "method": "",
+      "method": "background",
       "directives": ""
       }
     return template.format(**context)
