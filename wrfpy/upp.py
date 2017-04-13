@@ -262,10 +262,3 @@ NCAR
     # check if file is indeed archived
     utils.check_file_exists(os.path.join(self.config['filesystem']['upp_archive_dir'], outname))
 
-
-if __name__ == "__main__":
-  postprocess = upp()
-  wrfout_files = glob.glob(os.path.join(self.config['filesystem']['wrf_run_dir'], 'wrfout_d01*'))
-  postprocess.run_unipost_file(wrfout_files[0], use_t0=True)
-  [postprocess.run_unipost_file(f) for f in wrfout_files[1:]]
-
