@@ -78,6 +78,7 @@ class wrfpy(config):
     '''
     config.__init__(self, os.path.join(
                     basedir, suitename, 'config.json'))
+    self.incr_hour = self.config['options_general']['run_hours']
     suiterc = self._header()
     suiterc += self._scheduling()
     suiterc += self._runtime()
@@ -121,7 +122,6 @@ class wrfpy(config):
     start_hour = str(
       utils.return_validate(
       self.config['options_general']['date_start']).hour).zfill(2)
-    incr_hour = self.config['options_general']['run_hours']
     # define template
     template = """[scheduling]
   initial cycle point = {{{{ START }}}}
@@ -137,7 +137,7 @@ class wrfpy(config):
     # Repeat every {incr_hour} hours, starting {incr_hour} hours after initial cylce point
     [[[+PT{incr_hour}H/PT{incr_hour}H]]]
       graph = \"\"\"
-        wrf_run[-PT{incr_hour}H] => init => wrf_real => wrfda => copy_urb => wrf_run
+        wrf_run[-PT{incr_hour}H] => init => wrf_real => wrfda => wrf_run
         init => obsproc_run
         obsproc_run => wrfda
       \"\"\"
@@ -146,7 +146,7 @@ class wrfpy(config):
     # context variables in template
     context = {
       "start_hour": start_hour,
-      "incr_hour": incr_hour
+      "incr_hour": self.incr_hour
       }
     return template.format(**context)
 
@@ -157,7 +157,7 @@ class wrfpy(config):
     '''
     return (self._runtime_base() + self._runtime_init() + self._runtime_real() +
             self._runtime_wrf() + self._runtime_obsproc() +
-            self._runtime_wrfda())
+            self._runtime_wrfda() + self._runtime_upp())
 
 
   def _runtime_base(self):
@@ -179,20 +179,33 @@ class wrfpy(config):
     '''
     define suite.rc runtime information: init
     '''
-    wrf_init_command = "wrf_init.py $CYLC_TASK_CYCLE_POINT"
-    obsproc_init_command = "wrfda_obsproc_init.py $CYLC_TASK_CYCLE_POINT"
-    # defne template
+    init_command = """#!/usr/bin/env python
+import wrfpy.utils as utils
+from wrfpy.wrf import run_wrf
+import wrfpy.wrfda as wrfda
+import os
+dt = utils.convert_cylc_time(os.environ('$CYLC_TASK_CYCLE_POINT'))
+incr_hour = self.config['options_general']['run_hours']
+run_wrf(dt, dt + datetime.timedelta(hours={incr_hour}))
+WRFDA = wrfda()  # initialize object
+WRFDA.obsproc_init(datestart)
+
+"""
+    init_context = {
+      "incr_hour": self.incr_hour
+      }
+    init = init_command.format(**init_context)
+    # define template
     template = """
   [[init]]
     script = \"\"\"
 {wrf_init}
-{obsproc_init}
 \"\"\"
 """
     # context variables in template
     context = {
-      "wrf_init": wrf_init_command,
-      "obsproc_init":  obsproc_init_command
+      "wrf_init": wrf_init,
+      "obsproc_init":  obsproc_init
       }
     return template.format(**context)
 
@@ -355,12 +368,88 @@ srun ./obsproc.exe"""
     # define template
     template = """
   [[wrfda]]
-    script = wrfda_run.py $CYLC_TASK_CYCLE_POINT
+    script = \"\"\"
+{command}
+\"\"\"
+    [[[environment]]]
+      CYLC_TASK_WORK_DIR = $WORKDIR
+    [[[job submission]]]
+      method = {method}
+    [[[directives]]]
+      {directives}
 """
+    command="""#!/usr/bin/env python
+import wrfpy.utils as utils
+from wrfpy.wrfda import wrfda
+import os
+dt = utils.convert_cylc_time(os.environ('CYLC_TASK_CYCLE_POINT'))
+WRFDA = wrfda()  # initialize object
+WRFDA.prepare_updatebc(dt)
+for domain in range(1, WRFDA.max_dom+1):
+  WRFDA.updatebc_run(domain)  # run da_updatebc.exe
+WRFDA.prepare_wrfda()  # prepare for running da_wrfvar.exe
+for domain in range(1, WRFDA.max_dom+1):
+  WRFDA.wrfvar_run(domain)  # run da_wrfvar.exe
+WRFDA.prepare_updatebc_type('lateral', dt, 1)  # prepare for updating lateral bc
+WRFDA.updatebc_run(1)  # run da_updatebc.exe
+WRFDA.wrfda_post()  # copy files over to WRF run_dir"""
+    try:
+      if self.config['options_slurm']['slurm_da_wrfvar.exe']:
+        method="slurm"
+        with open(self.config[
+                  'options_slurm']['slurm_da_wrfvar.exe'], 'r') as myfile:
+          directives=myfile.read().replace('\n', '\n      ')
+      else:
+          method = "background"
+          directives=""
+    except KeyError:
+      # slurm_real.exe not found in config.json, default to background
+      method = "background"
+      directives=""
     # context variables in template
-    context = {}
+    context = {
+      "command": command,
+      "method": method,
+      "directives": directives
+      }
     return template.format(**context)
 
+  def _runtime_upp(self):
+    '''
+    define suite.rc runtime information: wrfda
+    '''
+    # define template
+    template = """
+  [[upp]]
+    script = \"\"\"
+{command}
+\"\"\"
+    [[[environment]]]
+    [[[job submission]]]
+      method = background
+    [[[directives]]]
+      {directives}
+"""
+    command="""#!/usr/bin/env python
+import wrfpy.upp as upp
+import wrfpy.utils as utils
+import os
+postprocess = upp()
+# get datetime object for currenct cycle point
+dt = utils.convert_cylc_time(os.environ('CYLC_TASK_CYCLE_POINT'))
+# construct wrfout name for domain 1
+dt_str = dt.strftime('%Y-%m-%d_%H:%M:%S')
+wrfout_name = wrfout_d01_ + dt_str
+wrfout_file = os.path.join(self.config['filesystem']['wrf_run_dir'], wrfout_name)
+start_date = utils.return_validate(postprocess.config['options_general']['date_start'])
+if (start_date == dt):  # very first timestep
+  postprocess.run_unipost_file(wrfout_files[0], use_t0=True)
+else:
+  postprocess.run_unipost_file(wrfout_files[0], use_t0=False)"""
+    context = {
+      "command": command,
+      }
+    return template.format(**context)
 
   def _visualization(self):
     '''
