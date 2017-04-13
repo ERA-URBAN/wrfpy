@@ -60,8 +60,7 @@ class wrfda(config):
     # convert to unique list
     obslist = list(set(self.obs.values()))
     # read WRF namelist in WRF work_dir
-    wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
-                                       'namelist.input'))
+    wrf_nml = f90nml.read(self.config['options_wrf']['namelist.input'])
     for obs in obslist:
       # read obsproc namelist
       obsproc_nml = f90nml.read(os.path.join(self.obsproc_dir,
@@ -99,13 +98,9 @@ class wrfda(config):
   def get_obsproc_dirs(self):
     '''
     get list of observation names and workdirs for obsproc
-		'''
-    # read WRF namelist in WRF work_dir
-    wrf_nml = f90nml.read(os.path.join(self.config['filesystem']['wrf_run_dir'],
-                                       'namelist.input'))
-		# initialize variables
+    '''
+    # initialize variables
     obsnames, obsproc_workdirs = [], []
-		#
     for dom in range(1, self.max_dom + 1):
       try:
         obsname = self.config['filesystem']['obs_filename_d' + str(dom)]

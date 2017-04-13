@@ -28,7 +28,7 @@ class wps(config):
     utils._create_directory(self.wps_workdir)
 
 
-  def _initialize(self):
+  def _initialize(self, datestart, dateend):
     '''
     Initialize WPS working directory / namelist
     '''
@@ -89,7 +89,7 @@ class wps(config):
     filelist = [fl for fl in filelist if os.path.isfile(fl)]
     if len(filelist) == 0:
       message = 'linking boundary files failed, no files found to link'
-      logger.error(message)
+      #logger.error(message)
       raise IOError(message)
     # get list of filename extensions to use for destination link
     linkext = self._get_ext_list(len(filelist))
@@ -122,7 +122,7 @@ class wps(config):
           i3 += 1  # increment i3
           if i3 >= len(ascii_uppercase):
             message = 'Too many files to link'
-            logger.error(message)
+            #logger.error(message)
             raise IOError(message)
     return list_ext
 
@@ -183,7 +183,7 @@ class wps(config):
                                       stderr=utils.devnull())
         j_id = int(res.split()[-1])  # slurm job-id
       except subprocess.CalledProcessError:
-        logger.error('Metgrid failed %s:' %geogrid_command)
+        #logger.error('Metgrid failed %s:' %geogrid_command)
         raise  # re-raise exception
       return j_id  # return slurm job-id
     else:
@@ -194,7 +194,7 @@ class wps(config):
         subprocess.check_call(geogrid_command, cwd=self.wps_workdir,
                               stdout=utils.devnull(), stderr=utils.devnull())
       except subprocess.CalledProcessError:
-        logger.error('Geogrid failed %s:' %geogrid_command)
+        #logger.error('Geogrid failed %s:' %geogrid_command)
         raise  # re-raise exception
 
 
@@ -219,7 +219,7 @@ class wps(config):
                                       stderr=utils.devnull())
         j_id = int(res.split()[-1])  # slurm job-id
       except subprocess.CalledProcessError:
-        logger.error('Ungrib failed %s:' %ungrib_command)
+        #logger.error('Ungrib failed %s:' %ungrib_command)
         raise  # re-raise exception
       return j_id  # return slurm job-id
     else:
@@ -230,7 +230,7 @@ class wps(config):
         subprocess.check_call(ungrib_command, cwd=self.wps_workdir,
                               stdout=utils.devnull(), stderr=utils.devnull())
       except subprocess.CalledProcessError:
-        logger.error('Ungrib failed %s:' %ungrib_command)
+        #logger.error('Ungrib failed %s:' %ungrib_command)
         raise  # re-raise exception
 
 
@@ -253,7 +253,7 @@ class wps(config):
                                       stderr=utils.devnull())
         j_id = int(res.split()[-1])  # slurm job-id
       except subprocess.CalledProcessError:
-        logger.error('Metgrid failed %s:' %metgrid_command)
+        #logger.error('Metgrid failed %s:' %metgrid_command)
         raise  # re-raise exception
       return j_id  # return slurm job-id
     else:
@@ -264,6 +264,6 @@ class wps(config):
         subprocess.check_call(metgrid_command, cwd=self.wps_workdir,
                               stdout=utils.devnull(), stderr=utils.devnull())
       except subprocess.CalledProcessError:
-        logger.error('Metgrid failed %s:' %metgrid_command)
+        #logger.error('Metgrid failed %s:' %metgrid_command)
         raise  # re-raise exception
 
