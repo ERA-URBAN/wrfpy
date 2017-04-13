@@ -25,8 +25,7 @@ class wrfda(config):
     self.rundir = self.config['filesystem']['wrf_run_dir']
     self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'],
                                       'wrfda')
-    self.max_dom = utils.get_max_dom(os.path.join(self.config['filesystem']['wrf_run_dir'],
-                                     'namelist.input'))  # get maximum domain number
+    self.max_dom = utils.get_max_dom(self.config['options_wrf']['namelist.input'])
     # copy default 3dvar obsproc namelist to namelist.obsproc
     self.obsproc_dir = os.path.join(self.config['filesystem']['wrfda_dir'],
                                     'var/obsproc')
