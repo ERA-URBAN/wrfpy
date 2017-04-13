@@ -17,8 +17,8 @@ class run_wrf(config):
   '''
   run_wrf is a subclass of config  # TODO: use better names
   '''
-  def __init__(self, wrfpy_dir, datestart, dateend):
-    config.__init__(self, wrfpy_dir)
+  def __init__(self, datestart, dateend):
+    config.__init__(self)
     # TODO: wrf_run_dir should be flexible if running in UPP mode
     self.wrf_run_dir = self.config['filesystem']['wrf_run_dir']
     self.cleanup_previous_wrf_run()

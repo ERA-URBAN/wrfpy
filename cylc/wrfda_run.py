@@ -17,10 +17,10 @@ def updatebc_init(datestart):
     WRFDA.prepare_updatebc(datestart)
     WRFDA.updatebc_run(1)
     WRFDA.prepare_wrfda()  # prepare for running da_wrfvar.exe
-    shutil.copyfile('/home/haren/dtest/ob.radar', '/scratch-shared/haren/newd/wrfda/d01/ob.radar')
+    #shutil.copyfile('/home/haren/dtest/ob.radar', '/scratch-shared/haren/newd/wrfda/d01/ob.radar')
     WRFDA.wrfvar_run(1)
     wrfda_interpolate()
-    bumpskin()
+    #bumpskin()
     WRFDA.prepare_updatebc_type('lateral', datestart, 1)  # prepare for updating lateral bc
     WRFDA.updatebc_run(1)  # run da_updatebc.exe
     WRFDA.wrfda_post()  # copy files over to WRF run_dir
@@ -31,7 +31,7 @@ def main(datestring):
       - converts cylc timestring to datetime object
       - calls wps_init()
     '''
-    dt = utils.convert_cylc_time2(datestring)
+    dt = utils.convert_cylc_time(datestring)
     updatebc_init(dt)
 
 

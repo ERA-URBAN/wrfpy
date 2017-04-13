@@ -20,7 +20,7 @@ def main(datestring):
       - converts cylc timestring to datetime object
       - calls wps_init()
     '''
-    dt = utils.convert_cylc_time2(datestring)
+    dt = utils.convert_cylc_time(datestring)
     obsproc_init(dt)
 
 

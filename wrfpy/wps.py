@@ -20,8 +20,8 @@ class wps(config):
   '''
   description
   '''
-  def __init__(self, wrfpy_dir, datestart, dateend):
-    config.__init__(self, wrfpy_dir)  # load config
+  def __init__(self):
+    config.__init__(self)  # load config
     # define and create wps working directory
     self.wps_workdir = os.path.join(self.config['filesystem']['work_dir'],
                                     'wps')

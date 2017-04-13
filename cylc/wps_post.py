@@ -19,17 +19,17 @@ class wps_post(config):
     def __init__(self):
         config.__init__(self)
         rundir = self.config['filesystem']['wrf_run_dir']
-	wpsdir = os.path.join(self.config['filesystem']['work_dir'], 'wps')
+        wpsdir = os.path.join(self.config['filesystem']['work_dir'], 'wps')
         ## wrf run dir
         # cleanup old met_em files
         # create list of files to remove
-        files = [glob.glob(os.path.join(rundir, ext))
-                 for ext in ['met_em*']]
+        #files = [glob.glob(os.path.join(rundir, ext))
+        #         for ext in ['met_em*']]
         # flatten list
-        files_flat = [item for sublist in files for item in sublist] 
+        #files_flat = [item for sublist in files for item in sublist] 
         # remove files silently
-        [ utils.silentremove(filename) for filename in files_flat ]
-	# copy new met_em files
+        #[ utils.silentremove(filename) for filename in files_flat ]
+        # copy new met_em files
         # create list of files to copy
         files = [glob.glob(os.path.join(wpsdir, ext))
                  for ext in ['met_em*']]
@@ -44,8 +44,6 @@ class wps_post(config):
         files_flat = [item for sublist in files for item in sublist]
         # remove files silently
         [ utils.silentremove(filename) for filename in files_flat ]
-
-
 
 if __name__=="__main__":
     wps_post() 

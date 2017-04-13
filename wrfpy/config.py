@@ -53,7 +53,7 @@ class config:
                 'archive_dir', 'boundary_dir', 'upp_archive_dir', 'work_dir']
     keys_wrf = ['namelist.input']
     keys_upp = ['upp', 'upp_interval']
-    keys_wrfda = ['namelist.wrfda', 'wrfda', 'wrfda_type', 'cv', 'be.dat']
+    keys_wrfda = ['namelist.wrfda', 'wrfda', 'wrfda_type', 'cv_type', 'be.dat']
     keys_general = ['date_start', 'date_end', 'boundary_interval', 'ref_lon',
                     'ref_lat']
     keys_wps = ['namelist.wps', 'run_hours']
