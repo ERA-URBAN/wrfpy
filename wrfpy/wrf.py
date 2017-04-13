@@ -83,6 +83,17 @@ class run_wrf(config):
     wrf_nml['time_control']['run_hours'] = td_hours
     wrf_nml['time_control']['run_minutes'] = td_minutes
     wrf_nml['time_control']['run_seconds'] = td_seconds
+    # check if WUR urban config is to be used
+    if 'sf_urban_use_wur_config' in wrf_nml['physics']:
+      # get start_date from config.json
+      start_date = utils.return_validate(
+        self.config['options_general']['date_start'])
+      # if very first timestep, don't initialize urban parameters from file
+      if (wrf_nml['physics']['sf_urban_use_wur_config'] and
+          start_date == datestart):
+        wrf_nml['physics']['sf_urban_init_from_file'] = False
+      else:
+        wrf_nml['physics']['sf_urban_init_from_file'] = True
     # write namelist.input
     wrf_nml.write(os.path.join(
       self.config['filesystem']['wrf_run_dir'], 'namelist.input'))
