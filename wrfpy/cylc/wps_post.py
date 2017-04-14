@@ -3,7 +3,7 @@
 import argparse
 import datetime
 import time
-import utils
+from wrfpy import utils
 from config import config
 import os
 #from urb import urb
@@ -19,7 +19,7 @@ class wps_post(config):
     def __init__(self):
         config.__init__(self)
         rundir = self.config['filesystem']['wrf_run_dir']
-	wpsdir = os.path.join(self.config['filesystem']['work_dir'], 'wps')
+        wpsdir = os.path.join(self.config['filesystem']['work_dir'], 'wps')
         ## wrf run dir
         # cleanup old met_em files
         # create list of files to remove
@@ -29,7 +29,7 @@ class wps_post(config):
         files_flat = [item for sublist in files for item in sublist] 
         # remove files silently
         [ utils.silentremove(filename) for filename in files_flat ]
-	# copy new met_em files
+        # copy new met_em files
         # create list of files to copy
         files = [glob.glob(os.path.join(wpsdir, ext))
                  for ext in ['met_em*']]
