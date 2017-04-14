@@ -73,8 +73,8 @@ class run_wrf(config):
       else:
         wrf_nml[el.split(':')[0]][el.split(':')[1]] = dict[el] * ndoms
     # set interval_seconds to total seconds between datestart and dateend
-    wrf_nml['time_control']['interval_seconds'] = self.config[
-      'options_general']['boundary_interval']
+    wrf_nml['time_control']['interval_seconds'] = int(self.config[
+      'options_general']['boundary_interval'])
     # calculate datetime.timedelta between datestart and dateend
     td = dateend - datestart
     # set run_days, run_hours, run_minutes, run_seconds
