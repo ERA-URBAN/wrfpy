@@ -250,11 +250,7 @@ class wrfpy(config):
       if self.config['options_slurm']['slurm_real.exe']:
         method = "slurm"
         command="""#!/usr/bin/env bash
-if [ -n "$SLURM_CPUS_PER_TASK" ]; then
-  omp_threads=$SLURM_CPUS_PER_TASK
-else
-  omp_threads=1
-fi
+omp_threads=1
 export OMP_NUM_THREADS=$omp_threads
 srun ./real.exe"""
         with open(self.config['options_slurm']['slurm_real.exe'], 'r') as myfile:
