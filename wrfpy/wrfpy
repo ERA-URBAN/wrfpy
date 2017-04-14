@@ -93,10 +93,10 @@ class wrfpy(config):
     '''
     start_time = utils.datetime_to_string(
       utils.return_validate(self.config['options_general']['date_start']),
-      format='%Y%m%d%H')
+      format='%Y%m%dT%H')
     end_time = utils.datetime_to_string(
       utils.return_validate(self.config['options_general']['date_end']),
-      format='%Y%m%d%H')
+      format='%Y%m%dT%H')
     # define template
     template = """#!Jinja2
 
@@ -372,7 +372,8 @@ srun ./obsproc.exe"""
     # context variables in template
     context = {
       "command": command,
-      "obsproc_dir": os.path.join(self.config['filesystem']['work_dir'], 'obsproc'),
+      "obsproc_dir": os.path.join(self.config['filesystem']['work_dir'], 'obsproc',
+                                  self.config['filesystem']['obs_filename']),
       "method": method,
       "directives": directives
       }
