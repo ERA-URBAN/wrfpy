@@ -11,6 +11,7 @@ import glob
 import subprocess
 import os
 import errno
+from wrfpy.config import config
 
 class upp(config):
   '''
@@ -18,7 +19,7 @@ class upp(config):
   a wrfout file
   '''
   def __init__(self):
-    config.__init__(self, wrfpy_dir)
+    config.__init__(self)
     self._set_variables()
     self._initialize()
     self._prepare_post_dir()
@@ -30,7 +31,7 @@ class upp(config):
     Define additional control variables for the unipost.exe tool, inherit from
     global config.
     '''
-    self.crtm_dir = os.path.join(self.config['upp_dir'], 'src/lib/crtm2/src/fix')
+    self.crtm_dir = os.path.join(self.config['filesystem']['upp_dir'], 'src/lib/crtm2/src/fix')
     self.post_dir = os.path.join(self.config['filesystem']['upp_dir'], 'postprd')
 
   def _initialize(self):

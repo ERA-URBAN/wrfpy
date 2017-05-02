@@ -186,7 +186,7 @@ class wrfda(config):
       ), os.path.join(wrfda_workdir, 'da_wrfvar.exe'))
     if self.check_cv5():
       # cv5:
-      os.symlink(self.config['options_wrfda']['be.dat_d0' + str(domain)],
+      os.symlink(self.config['options_wrfda']['be.dat'],
                  os.path.join(wrfda_workdir, 'be.dat'))
     else:
       # cv3
@@ -248,9 +248,9 @@ class wrfda(config):
     wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
     # read WRFDA namelist, use namelist.wrfda as supplied in config.json
     # if not supplied, fall back to default from WRFDA
-    if utils.check_file_exists(self.config['wrfda']['namelist.wrfda'],
+    if utils.check_file_exists(self.config['options_wrfda']['namelist.wrfda'],
                                boolean=True):
-      wrfda_namelist = self.config['wrfda']['namelist.wrfda']
+      wrfda_namelist = self.config['options_wrfda']['namelist.wrfda']
     else:
       wrfda_namelist = os.path.join(self.config['filesystem']['wrfda_dir'],
                                     'var/test/tutorial/namelist.input')
@@ -284,7 +284,7 @@ class wrfda(config):
     wrfda_nml['wrfvar18']['analysis_date'] = obsproc_nml['record2']['time_analysis']
     wrfda_nml['wrfvar21']['time_window_min'] = obsproc_nml['record2']['time_window_min']
     wrfda_nml['wrfvar22']['time_window_max'] = obsproc_nml['record2']['time_window_max']
-    if check_cv5():
+    if self.check_cv5():
       wrfda_nml['wrfvar7']['cv_options'] =  5
       wrfda_nml['wrfvar6']['max_ext_its'] = 2
       wrfda_nml['wrfvar5']['check_max_iv'] = True
@@ -310,7 +310,7 @@ class wrfda(config):
     be.dat is defined (and exist on filesystem)
     for the outer domain in config.json
     '''
-    if self.config['options_wrfda']['cv_type']==5:
+    if int(self.config['options_wrfda']['cv_type'])==5:
       return utils.check_file_exists(
         self.config['options_wrfda']['be.dat'], boolean=True)
 
