@@ -9,28 +9,31 @@ import f90nml
 from wrfpy.config import config
 
 class wrfda_interpolate(config):
-#class wrfda_interpolate:
   def __init__(self):
     config.__init__(self)
     # read WRF namelist in WRF work_dir
     wrf_nml = f90nml.read(self.config['options_wrf']['namelist.input'])
     self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'],
                                       'wrfda')
-    #self.wrfda_workdir = '/scratch-shared/haren/bep/wrfda.test'
     # get number of domains
     ndoms = wrf_nml['domains']['max_dom']
-    #ndoms = 2
     # check if ndoms is an integer and >0
     if not (isinstance(ndoms, int) and ndoms>0):
       raise ValueError("'domains_max_dom' namelist variable should be an " \
                       "integer>0")
     doms = range(2, ndoms+1)
     for dom in doms:
-      #pdomain = dom - 1  # parent domain
       pdomain = 1
       self.read_init(dom, pdomain)
       self.fix_2d_field('ALBBCK', 'CANWAT', 'MU', 'PSFC', 'SST', 'TMN', 'TSK')
       self.fix_3d_field('P', 'PH', 'SH2O', 'SMOIS', 'T', 'TSLB', 'W', 'QVAPOR')
+      try:
+        if self.config['options_general']['fix_urban_temps']:
+          print("incrementing urban temperatures")
+          self.fix_2d_field('TC_URB','TR_URB','TB_URB','TG_URB','TS_URB')
+          self.fix_3d_field('TRL_URB','TBL_URB', 'TGL_URB')
+      except KeyError:
+        pass
       self.fix_3d_field_uv(self.XLAT_U_p, self.XLONG_U_p, self.XLAT_U_c, self.XLONG_U_c, 'U')
       self.fix_3d_field_uv(self.XLAT_V_p, self.XLONG_V_p, self.XLAT_V_c, self.XLONG_V_c, 'V')
     if ndoms > 1:
@@ -74,21 +77,12 @@ class wrfda_interpolate(config):
       var =  self.wrfinput_p.variables[variable][0,:] - self.fg_p.variables[variable][0,:]
       intp_var = [interpolate.griddata((self.XLONG_p.reshape(-1),self.XLAT_p.reshape(-1)), var[lev,:].reshape(-1), (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c)) for lev in range(0,len(var))]
       self.wrfinput_c.variables[variable][:] += intp_var
-      #from pylab import *
-      #import pdb; pdb.set_trace()
-      #contourf(self.XLONG_c, self.XLAT_c, intp_var[0])
-      #show()
-      #import pdb; pdb.set_trace()
 
   def fix_3d_field_uv(self,XLAT_p, XLONG_p, XLAT_c, XLONG_c, *variables):
     for variable in variables:
       var =  self.wrfinput_p.variables[variable][0,:] - self.fg_p.variables[variable][0,:]
       intp_var = [interpolate.griddata((XLONG_p.reshape(-1),XLAT_p.reshape(-1)), var[lev,:].reshape(-1), (XLONG_c.reshape(-1),XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(XLONG_c)) for lev in range(0,len(var))]
       self.wrfinput_c.variables[variable][:] += intp_var
-      #from pylab import *
-      #contourf(XLONG_c, XLAT_c, self.wrfinput_c.variables[variable][0,0,:])
-      #colorbar()
-      #show()
 
   def cleanup(self):
     '''
