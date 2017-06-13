@@ -60,6 +60,7 @@ def find_gridpoint(lat_in, lon_in, lat, lon):
 class bumpskin(config):
   def __init__(self, filename):
     config.__init__(self)
+    self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'], 'wrfda')
     # verify input
     self.verify_input(filename)
     # fix urban temperatures in outer domain
@@ -145,7 +146,7 @@ class bumpskin(config):
         dt = obs.variables['time'] 
         dtobj_obs = num2date(dt[:], units=dt.units, calendar=dt.calendar)
         idx = numpy.argsort(abs(dtobj_obs-dtobj))[0]
-      if abs((dtobj_obs-dtobj)[idx]).total_seconds() > 900:
+        if abs((dtobj_obs-dtobj)[idx]).total_seconds() > 900:
           # ignore observation if
           # time difference between model and observation is > 15 minutes
           continue 
@@ -226,7 +227,7 @@ class bumpskin(config):
     self.wrfinput2 = Dataset(os.path.join(wrfda_workdir, 'wrfvar_output'), 'r+')
     # define variables to increment
     variables_2d = ['TSK', 'TC_URB','TR_URB','TB_URB','TG_URB','TS_URB']
-    variables_3d = ['TRL_URB','TBL_URB', 'TGL_URB']
+    variables_3d = ['TRL_URB','TBL_URB', 'TGL_URB', 'TSLB']
     TSK = self.wrfinput2.variables['TSK']
     TSK[:] = TSK[:] + diffT
     TC_URB = self.wrfinput2.variables['TC_URB']
@@ -246,16 +247,35 @@ class bumpskin(config):
     levs = numpy.shape(self.wrfinput2.variables['TRL_URB'][:])[1]
     for lev in range(0,levs):
       TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT
+      if lev == 0:
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.68
+      elif lev == 1:
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.04
+      elif lev == 2:
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.01
+      elif lev == 3:
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.01
 
     TBL_URB = self.wrfinput2.variables['TBL_URB']
     levs = numpy.shape(self.wrfinput2.variables['TBL_URB'][:])[1]
     for lev in range(0,levs):
-      TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT
+      if lev == 0:
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.61
+      elif lev == 1:
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.03
+      elif lev == 2:
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.01
+      elif lev == 3:
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.01	
 
     TGL_URB = self.wrfinput2.variables['TGL_URB']
     levs = numpy.shape(self.wrfinput2.variables['TGL_URB'][:])[1]
-    for lev in range(0,levs):
-      TGL_URB[0,lev,:] = TGL_URB[0,lev,:] + diffT
+    TGL_URB[0,0,:] = TGL_URB[0,0,:] + diffT * 0.43
+
+    #adjustment soil for vegetation fraction urban cell, only upper level
+    TSLB = self.wrfinput2.variables['TSLB']
+    TSLB[0,0,:] = TSLB[0,0,:] + diffT * 0.59
+
     # close netcdf file
     self.wrfinput2.close()
 

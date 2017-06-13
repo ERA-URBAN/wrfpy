@@ -30,8 +30,11 @@ class wrfda_interpolate(config):
       try:
         if self.config['options_general']['fix_urban_temps']:
           print("incrementing urban temperatures")
+          # calculate 0/1 matrix for urban cells
+          self.urb = np.zeros(np.shape(self.wrfinput_c.variables['LU_INDEX'][:]))
+          self.urb[self.wrfinput_c.variables['LU_INDEX']==1] = 1
           self.fix_2d_field('TC_URB','TR_URB','TB_URB','TG_URB','TS_URB')
-          self.fix_3d_field('TRL_URB','TBL_URB', 'TGL_URB')
+          self.fix_3d_field('TRL_URB','TBL_URB', 'TGL_URB', 'TSLB')
       except KeyError:
         pass
       self.fix_3d_field_uv(self.XLAT_U_p, self.XLONG_U_p, self.XLAT_U_c, self.XLONG_U_c, 'U')
@@ -70,12 +73,18 @@ class wrfda_interpolate(config):
     for variable in variables:
       var =  self.wrfinput_p.variables[variable][0,:] - self.fg_p.variables[variable][0,:]
       intp_var = interpolate.griddata((self.XLONG_p.reshape(-1),self.XLAT_p.reshape(-1)), var.reshape(-1), (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c))
+      # for urban variables, only increment where LU_INDEX==1
+      if variable in ['TC_URB','TR_URB','TB_URB','TG_URB','TS_URB']:
+        # only increment urban cells with LU_INDEX==1
+        intp_var = intp_var * self.urb
       self.wrfinput_c.variables[variable][:] += intp_var
 
   def fix_3d_field(self, *variables):
     for variable in variables:
       var =  self.wrfinput_p.variables[variable][0,:] - self.fg_p.variables[variable][0,:]
       intp_var = [interpolate.griddata((self.XLONG_p.reshape(-1),self.XLAT_p.reshape(-1)), var[lev,:].reshape(-1), (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c)) for lev in range(0,len(var))]
+      if variable in ['TRL_URB','TBL_URB', 'TGL_URB']:
+        intp_var = [inpt_var[lev,:] * self.urb for lev in range(0, len(var))]
       self.wrfinput_c.variables[variable][:] += intp_var
 
   def fix_3d_field_uv(self,XLAT_p, XLONG_p, XLAT_c, XLONG_c, *variables):
