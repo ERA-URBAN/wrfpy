@@ -47,7 +47,7 @@ class wrfda(config):
       self.wrfvar_run(domain)  # run da_wrfvar.exe
     self.prepare_updatebc_type('lateral', datestart, 1)  # prepare for updating lateral bc
     self.updatebc_run(1)  # run da_updatebc.exe
-    self.wrfda_post()  # copy files over to WRF run_dir
+    self.wrfda_post(datestart)  # copy files over to WRF run_dir
 
 
   def obsproc_init(self, datestart):
@@ -450,7 +450,7 @@ class wrfda(config):
                             cwd=wrfda_workdir,
                             stdout=utils.devnull(), stderr=utils.devnull())
 
-  def wrfda_post(self):
+  def wrfda_post(self, datestart):
     '''
     Move files into WRF run dir after all data assimilation steps have completed
     '''
@@ -472,6 +472,13 @@ class wrfda(config):
       else:
         shutil.copyfile(os.path.join(wrfda_workdir, 'fg'),
                         os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
+      datestr = datetime.strftime(datestart, '%Y-%m-%d_%H:%M:%S')
+      rsl_out_name = 'wrfda_rsl_out_' + datestr
+      statistics_out_name = 'wrfda_statistics_' + datestr
+      shutil.copyfile(os.path.join(wrfda_workdir, 'rsl.out.0000'),
+                      os.path.join(self.rundir, rsl_out_name))
+      shutil.copyfile(os.path.join(wrfda_workdir, 'statistics'),
+                      os.path.join(self.rundir, statistics_out_name))
 
 
 if __name__ == "__main__":
