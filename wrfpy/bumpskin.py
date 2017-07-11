@@ -215,6 +215,41 @@ class bumpskin(config):
       diffT[LU_IND!=1] = 0
     else:
       # fit statistical model
+    TG_URB = self.wrfinput2.variables['TG_URB']
+    TG_URB[:] = TG_URB[:] + diffT
+    TS_URB = self.wrfinput2.variables['TS_URB']
+    TS_URB[:] = TS_URB[:] + diffT
+    TGR_URB = self.wrfinput2.variables['TGR_URB']
+    TGR_URB[:] = TGR_URB[:] + diffT
+
+    TRL_URB = self.wrfinput2.variables['TRL_URB']
+    levs = numpy.shape(self.wrfinput2.variables['TRL_URB'][:])[1]
+    for lev in range(0,levs):
+      TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT
+      if lev == 0:
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.675
+      elif lev == 1:
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.038
+      elif lev == 2:
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.021
+      elif lev == 3:
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.010
+
+    TBL_URB = self.wrfinput2.variables['TBL_URB']
+    levs = numpy.shape(self.wrfinput2.variables['TBL_URB'][:])[1]
+    for lev in range(0,levs):
+      if lev == 0:
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.608
+      elif lev == 1:
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.029
+      elif lev == 2:
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.013
+      elif lev == 3:
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.005	
+
+    TGL_URB = self.wrfinput2.variables['TGL_URB']
+    levs = numpy.shape(self.wrfinput2.variables['TGL_URB'][:])[1]
+    TGL_URB[0,0,:] = TGL_URB[0,0,:] + diffT * 0.435
       # define mask
       mask = (diffT_station > median - 3*std) & (diffT_station < median + 3*std) & (lu==1)
       fit = reg_m(diffT_station[mask], [(glw)[mask], uv10[mask]])
@@ -236,41 +271,6 @@ class bumpskin(config):
     TR_URB[:] = TR_URB[:] + diffT
     TB_URB = self.wrfinput2.variables['TB_URB']
     TB_URB[:] = TB_URB[:] + diffT
-    TG_URB = self.wrfinput2.variables['TG_URB']
-    TG_URB[:] = TG_URB[:] + diffT
-    TS_URB = self.wrfinput2.variables['TS_URB']
-    TS_URB[:] = TS_URB[:] + diffT
-    TGR_URB = self.wrfinput2.variables['TGR_URB']
-    TGR_URB[:] = TGR_URB[:] + diffT
-
-    TRL_URB = self.wrfinput2.variables['TRL_URB']
-    levs = numpy.shape(self.wrfinput2.variables['TRL_URB'][:])[1]
-    for lev in range(0,levs):
-      TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT
-      if lev == 0:
-        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.68
-      elif lev == 1:
-        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.04
-      elif lev == 2:
-        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.01
-      elif lev == 3:
-        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.01
-
-    TBL_URB = self.wrfinput2.variables['TBL_URB']
-    levs = numpy.shape(self.wrfinput2.variables['TBL_URB'][:])[1]
-    for lev in range(0,levs):
-      if lev == 0:
-        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.61
-      elif lev == 1:
-        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.03
-      elif lev == 2:
-        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.01
-      elif lev == 3:
-        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.01	
-
-    TGL_URB = self.wrfinput2.variables['TGL_URB']
-    levs = numpy.shape(self.wrfinput2.variables['TGL_URB'][:])[1]
-    TGL_URB[0,0,:] = TGL_URB[0,0,:] + diffT * 0.43
 
     #adjustment soil for vegetation fraction urban cell, only upper level
     TSLB = self.wrfinput2.variables['TSLB']
