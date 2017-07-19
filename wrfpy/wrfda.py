@@ -184,7 +184,7 @@ class wrfda(config):
     os.symlink(os.path.join(
       self.config['filesystem']['wrfda_dir'],'var/da/da_wrfvar.exe'
       ), os.path.join(wrfda_workdir, 'da_wrfvar.exe'))
-    if self.check_cv5():
+    if self.check_cv5_cv7():
       # cv5:
       os.symlink(self.config['options_wrfda']['be.dat'],
                  os.path.join(wrfda_workdir, 'be.dat'))
@@ -284,8 +284,8 @@ class wrfda(config):
     wrfda_nml['wrfvar18']['analysis_date'] = obsproc_nml['record2']['time_analysis']
     wrfda_nml['wrfvar21']['time_window_min'] = obsproc_nml['record2']['time_window_min']
     wrfda_nml['wrfvar22']['time_window_max'] = obsproc_nml['record2']['time_window_max']
-    if self.check_cv5():
-      wrfda_nml['wrfvar7']['cv_options'] =  5
+    if self.check_cv5_cv7():
+      wrfda_nml['wrfvar7']['cv_options'] =  int(self.config['options_wrfda']['cv_type'])
       wrfda_nml['wrfvar6']['max_ext_its'] = 2
       wrfda_nml['wrfvar5']['check_max_iv'] = True
     else:
@@ -304,13 +304,13 @@ class wrfda(config):
     wrfda_nml.write(os.path.join(wrfda_workdir, 'namelist.input'))
 
 
-  def check_cv5(self):
+  def check_cv5_cv7(self):
     '''
-    return True if cv_type=5 is set and 
+    return True if cv_type=5 or cv_type=7 is set and 
     be.dat is defined (and exist on filesystem)
     for the outer domain in config.json
     '''
-    if int(self.config['options_wrfda']['cv_type'])==5:
+    if (int(self.config['options_wrfda']['cv_type']) in [5, 7]):
       return utils.check_file_exists(
         self.config['options_wrfda']['be.dat'], boolean=True)
 
@@ -464,6 +464,14 @@ class wrfda(config):
         utils.silentremove(os.path.join(self.rundir, 'wrfbdy_d01'))
         shutil.copyfile(os.path.join(wrfda_workdir, 'wrfbdy_d01'),
                       os.path.join(self.rundir, 'wrfbdy_d01'))
+        # copy log files
+        datestr = datetime.strftime(datestart, '%Y-%m-%d_%H:%M:%S')
+        rsl_out_name = 'wrfda_rsl_out_' + datestr
+        statistics_out_name = 'wrfda_statistics_' + datestr
+        shutil.copyfile(os.path.join(wrfda_workdir, 'rsl.out.0000'),
+                        os.path.join(self.rundir, rsl_out_name))
+        shutil.copyfile(os.path.join(wrfda_workdir, 'statistics'),
+                        os.path.join(self.rundir, statistics_out_name))
       # copy wrfvar_output_d0${domain} to ${RUNDIR}/wrfinput_d0${domain}
       utils.silentremove(os.path.join(self.rundir ,'wrfinput_d0' + str(domain)))
       if not self.low_only:
@@ -472,13 +480,6 @@ class wrfda(config):
       else:
         shutil.copyfile(os.path.join(wrfda_workdir, 'fg'),
                         os.path.join(self.rundir, 'wrfinput_d0' + str(domain)))
-      datestr = datetime.strftime(datestart, '%Y-%m-%d_%H:%M:%S')
-      rsl_out_name = 'wrfda_rsl_out_' + datestr
-      statistics_out_name = 'wrfda_statistics_' + datestr
-      shutil.copyfile(os.path.join(wrfda_workdir, 'rsl.out.0000'),
-                      os.path.join(self.rundir, rsl_out_name))
-      shutil.copyfile(os.path.join(wrfda_workdir, 'statistics'),
-                      os.path.join(self.rundir, statistics_out_name))
 
 
 if __name__ == "__main__":
