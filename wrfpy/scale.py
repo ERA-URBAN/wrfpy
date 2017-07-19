@@ -26,7 +26,7 @@ class wrfda_interpolate(config):
       pdomain = 1
       self.read_init(dom, pdomain)
       self.fix_2d_field('ALBBCK', 'CANWAT', 'MU', 'PSFC', 'SST', 'TMN', 'TSK')
-      self.fix_3d_field('P', 'PH', 'SH2O', 'SMOIS', 'T', 'TSLB', 'W', 'QVAPOR')
+      self.fix_3d_field('P', 'PH', 'SH2O', 'SMOIS', 'T', 'W', 'QVAPOR')
       try:
         if self.config['options_general']['fix_urban_temps']:
           print("incrementing urban temperatures")
