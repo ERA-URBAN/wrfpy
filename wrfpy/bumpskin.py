@@ -226,10 +226,8 @@ class bumpskin(config):
       diffT[LU_IND!=1] = 0  # set to 0 if LU_IND!=1
     self.wrfinput2 = Dataset(os.path.join(wrfda_workdir, 'wrfvar_output'), 'r+')
     # define variables to increment
-    variables_2d = ['TSK', 'TC_URB','TR_URB','TB_URB','TG_URB','TS_URB']
+    variables_2d = ['TC_URB','TR_URB','TB_URB','TG_URB','TS_URB']
     variables_3d = ['TRL_URB','TBL_URB', 'TGL_URB', 'TSLB']
-    TSK = self.wrfinput2.variables['TSK']
-    TSK[:] = TSK[:] + diffT
     TC_URB = self.wrfinput2.variables['TC_URB']
     TC_URB[:] = TC_URB[:] + diffT
     TR_URB = self.wrfinput2.variables['TR_URB']
@@ -246,7 +244,6 @@ class bumpskin(config):
     TRL_URB = self.wrfinput2.variables['TRL_URB']
     levs = numpy.shape(self.wrfinput2.variables['TRL_URB'][:])[1]
     for lev in range(0,levs):
-      TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT
       if lev == 0:
         TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.675
       elif lev == 1:
@@ -277,9 +274,9 @@ class bumpskin(config):
     levs = numpy.shape(self.wrfinput2.variables['TSLB'][:])[1]
     for lev in range(0,levs):
       if lev == 0:
-        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.590
+        TSLB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.590
       elif lev == 1:
-        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.001
+        TSLB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.001
       else:
         pass
 
