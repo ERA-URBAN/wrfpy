@@ -214,12 +214,11 @@ class wrfda(config):
       parame.write("""&control_param
         da_file = './fg'
         wrf_input = './wrfinput_d01'
-        wrf_input = '/home/WUR/haren009/sources/WRFV3/run/wrfinput_d01'
         domain_id = 1
         cycling = .true.
         debug = .true.
-        low_bdy_only = .true.
-        update_lsm = .false.
+        update_low_bdy = .true.
+        update_lsm = .true.
         var4d_lbc = .false.
         iswater = 16
     /
@@ -468,10 +467,16 @@ class wrfda(config):
         datestr = datetime.strftime(datestart, '%Y-%m-%d_%H:%M:%S')
         rsl_out_name = 'wrfda_rsl_out_' + datestr
         statistics_out_name = 'wrfda_statistics_' + datestr
-        shutil.copyfile(os.path.join(wrfda_workdir, 'rsl.out.0000'),
-                        os.path.join(self.rundir, rsl_out_name))
-        shutil.copyfile(os.path.join(wrfda_workdir, 'statistics'),
-                        os.path.join(self.rundir, statistics_out_name))
+        try:
+          shutil.copyfile(os.path.join(wrfda_workdir, 'rsl.out.0000'),
+                          os.path.join(self.rundir, rsl_out_name))
+        except IOError:
+          pass
+        try:
+          shutil.copyfile(os.path.join(wrfda_workdir, 'statistics'),
+                          os.path.join(self.rundir, statistics_out_name))
+        except IOError:
+          pass
       # copy wrfvar_output_d0${domain} to ${RUNDIR}/wrfinput_d0${domain}
       utils.silentremove(os.path.join(self.rundir ,'wrfinput_d0' + str(domain)))
       if not self.low_only:
