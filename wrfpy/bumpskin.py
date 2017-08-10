@@ -3,9 +3,12 @@
 import argparse
 from netCDF4 import Dataset
 from netCDF4 import num2date
+from netCDF4 import date2num
+import bisect
 import numpy
 from geopy.distance import vincenty
 from wrfpy.config import config
+from wrfpy import utils
 import f90nml
 import os
 from datetime import datetime
@@ -61,6 +64,7 @@ class bumpskin(config):
   def __init__(self, filename):
     config.__init__(self)
     self.wrfda_workdir = os.path.join(self.config['filesystem']['work_dir'], 'wrfda')
+    self.wrf_rundir = self.config['filesystem']['work_dir']
     # verify input
     self.verify_input(filename)
     # fix urban temperatures in outer domain
@@ -95,7 +99,7 @@ class bumpskin(config):
       # convert to datetime object
       dtobj = datetime.strptime(datestr, '%Y-%m-%d_%H:%M:%S')
       wrfinput.close()  # close netcdf file
-      return dtobj
+      return dtobj, datestr
 
   def get_urban_temp(self, wrfinput, ams):
     '''
@@ -144,9 +148,22 @@ class bumpskin(config):
       try:
         obs = Dataset(f, 'r')
         dt = obs.variables['time'] 
-        dtobj_obs = num2date(dt[:], units=dt.units, calendar=dt.calendar)
-        idx = numpy.argsort(abs(dtobj_obs-dtobj))[0]
-        if abs((dtobj_obs-dtobj)[idx]).total_seconds() > 900:
+        # convert datetime object to dt.units units
+        dtobj_num = date2num(dtobj, units=dt.units, calendar=dt.calendar)
+        # make use of the property that the array is already sorted to 
+        # find the closest date
+        ind = bisect.bisect_left(dt[:], dtobj_num) 
+        if ind==0:
+          continue
+        else:
+          am = numpy.argmin([abs(dt[ind]-dtobj_num), abs(dt[ind-1]-dtobj_num)])
+          if am==0:
+            idx = ind
+          else:
+            idx = ind - 1
+        #dtobj_obs = num2date(dt[:], units=dt.units, calendar=dt.calendar)
+        #idx = numpy.argsort(abs(dtobj_obs-dtobj))[0]
+        if abs((dt[:]-dtobj_num)[idx]) > 900:
           # ignore observation if
           # time difference between model and observation is > 15 minutes
           continue 
@@ -187,7 +204,7 @@ class bumpskin(config):
     wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
     wrfinput = os.path.join(wrfda_workdir, 'fg')
     # get datetime from wrfinput file
-    dtobj = self.get_time(wrfinput)
+    dtobj, datestr = self.get_time(wrfinput)
     # get observed temperatures
     obs = self.obs_temp(dtobj)
     obs_temp = [obs[idx][2] for idx in range(0,len(obs))]
@@ -224,7 +241,15 @@ class bumpskin(config):
       else:  # use median
         diffT = median * numpy.ones(numpy.shape(glw_IND))
       diffT[LU_IND!=1] = 0  # set to 0 if LU_IND!=1
+    # open wrfvar_output (output after data assimilation)
     self.wrfinput2 = Dataset(os.path.join(wrfda_workdir, 'wrfvar_output'), 'r+')
+    # open wrfvar_input (input before data assimulation (last step previous run)
+    start_date = utils.return_validate(
+      self.config['options_general']['date_start'])
+    if (dtobj == start_date):  # very first timestep
+      self.wrfinput3 = Dataset(os.path.join(self.wrf_rundir, ('wrfinput_d0' + str(domain))), 'r')
+    else:
+      self.wrfinput3 = Dataset(os.path.join(self.wrf_rundir, ('wrfvar_input_d0' + str(domain) + '_' + datestr)), 'r')
     # define variables to increment
     variables_2d = ['TC_URB','TR_URB','TB_URB','TG_URB','TS_URB']
     variables_3d = ['TRL_URB','TBL_URB', 'TGL_URB', 'TSLB']
@@ -270,19 +295,23 @@ class bumpskin(config):
     TGL_URB[0,0,:] = TGL_URB[0,0,:] + diffT * 0.435
 
     #adjustment soil for vegetation fraction urban cell, only first two levels
-    TSLB = self.wrfinput2.variables['TSLB']
+    TSLB = self.wrfinput2.variables['TSLB']  # after update_lsm
+    TSLB_in = self.wrfinput3.variables['TSLB']  # wrfvar_input (before update_lsm)
     levs = numpy.shape(self.wrfinput2.variables['TSLB'][:])[1]
     for lev in range(0,levs):
+      # reset TSLB for urban cells to value before update_lsm
+      TSLB[0,lev,:][LU_IND==1] = TSLB_in[0,lev,:][LU_IND==1]
+      # apply diffT for first and second level
       if lev == 0:
-        TSLB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.590
+        TSLB[0,lev,:] = TSLB[0,lev,:] + diffT * 0.590
       elif lev == 1:
-        TSLB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.001
+        TSLB[0,lev,:] = TSLB[0,lev,:] + diffT * 0.001
       else:
         pass
 
     # close netcdf file
     self.wrfinput2.close()
-
+    self.wrfinput3.close()
 
 if __name__ == "__main__":
   # define argument menu
