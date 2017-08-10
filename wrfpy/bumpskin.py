@@ -270,13 +270,13 @@ class bumpskin(config):
     levs = numpy.shape(self.wrfinput2.variables['TRL_URB'][:])[1]
     for lev in range(0,levs):
       if lev == 0:
-        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.675
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.608
       elif lev == 1:
-        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.038
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.029
       elif lev == 2:
-        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.021
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.013
       elif lev == 3:
-        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.010
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.006
 
     TBL_URB = self.wrfinput2.variables['TBL_URB']
     levs = numpy.shape(self.wrfinput2.variables['TBL_URB'][:])[1]
@@ -288,7 +288,7 @@ class bumpskin(config):
       elif lev == 2:
         TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.013
       elif lev == 3:
-        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.005
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.006
 
     TGL_URB = self.wrfinput2.variables['TGL_URB']
     levs = numpy.shape(self.wrfinput2.variables['TGL_URB'][:])[1]
