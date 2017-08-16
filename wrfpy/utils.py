@@ -219,6 +219,15 @@ def testjob(id):
   except ValueError:
      return False
 
+def testjobsucces(id):
+  import subprocess
+  command = "sacct -j %s --format=state" %id
+  output = subprocess.check_output(command.split())
+  if any(x in ['CANCELED', 'FAILED', 'TIMEOUT'] for x in output.split()):
+    raise IOError('slurm command failed')
+  else:
+    return True
+
 def convert_cylc_time(string):
     import datetime
     import dateutil.parser
