@@ -253,6 +253,8 @@ class bumpskin(config):
     # define variables to increment
     variables_2d = ['TC_URB','TR_URB','TB_URB','TG_URB','TS_URB']
     variables_3d = ['TRL_URB','TBL_URB', 'TGL_URB', 'TSLB']
+    TSK = self.wrfinput2.variables['TSK']
+    TSK[:] = TSK[:] + diffT
     TC_URB = self.wrfinput2.variables['TC_URB']
     TC_URB[:] = TC_URB[:] + diffT
     TR_URB = self.wrfinput2.variables['TR_URB']
@@ -270,31 +272,37 @@ class bumpskin(config):
     levs = numpy.shape(self.wrfinput2.variables['TRL_URB'][:])[1]
     for lev in range(0,levs):
       if lev == 0:
-        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.608
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.754
       elif lev == 1:
-        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.029
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.393
       elif lev == 2:
-        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.013
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.176
       elif lev == 3:
-        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.006
+        TRL_URB[0,lev,:] = TRL_URB[0,lev,:] + diffT * 0.083
 
     TBL_URB = self.wrfinput2.variables['TBL_URB']
     levs = numpy.shape(self.wrfinput2.variables['TBL_URB'][:])[1]
     for lev in range(0,levs):
       if lev == 0:
-        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.608
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.754
       elif lev == 1:
-        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.029
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.393
       elif lev == 2:
-        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.013
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.176
       elif lev == 3:
-        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.006
+        TBL_URB[0,lev,:] = TBL_URB[0,lev,:] + diffT * 0.083
 
     TGL_URB = self.wrfinput2.variables['TGL_URB']
     levs = numpy.shape(self.wrfinput2.variables['TGL_URB'][:])[1]
-    TGL_URB[0,0,:] = TGL_URB[0,0,:] + diffT * 0.435
+    for lev in range(0,levs):
+      if lev == 0:
+       TGL_URB[0,lev,:] = TGL_URB[0,lev,:] + diffT * 0.694
+      elif lev == 1:
+       TGL_URB[0,lev,:] = TGL_URB[0,lev,:] + diffT * 0.020
+      else:
+       pass
 
-    #adjustment soil for vegetation fraction urban cell, only first two levels
+    #adjustment soil for vegetation fraction urban cell, only first three levels
     TSLB = self.wrfinput2.variables['TSLB']  # after update_lsm
     TSLB_in = self.wrfinput3.variables['TSLB']  # wrfvar_input (before update_lsm)
     levs = numpy.shape(self.wrfinput2.variables['TSLB'][:])[1]
@@ -303,8 +311,10 @@ class bumpskin(config):
       TSLB[0,lev,:][LU_IND==1] = TSLB_in[0,lev,:][LU_IND==1]
       # apply diffT for first and second level
       if lev == 0:
-        TSLB[0,lev,:] = TSLB[0,lev,:] + diffT * 0.590
+        TSLB[0,lev,:] = TSLB[0,lev,:] + diffT * 0.819
       elif lev == 1:
+        TSLB[0,lev,:] = TSLB[0,lev,:] + diffT * 0.090
+      elif lev == 2:
         TSLB[0,lev,:] = TSLB[0,lev,:] + diffT * 0.001
       else:
         pass
