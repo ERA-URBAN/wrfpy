@@ -11,6 +11,7 @@ from wrfpy import utils
 import os
 import argparse
 import sys
+from distutils.dir_util import copy_tree
 
 
 class wrfpy(config):
@@ -66,6 +67,9 @@ class wrfpy(config):
         [utils._create_directory(
          os.path.join(basedir, suitename, subdir))
          for subdir in subdirs]
+        # copy over cylc files
+        cylc_dir = os.path.join(sys.modules['wrfpy'].__path__[0], 'cylc')
+        copy_tree(cylc_dir, os.path.join(basedir, suitename, 'bin'))
         # create empty json config file in suite directory
         # this does not overwrite an existing config file
         config.__init__(self, os.path.join(
