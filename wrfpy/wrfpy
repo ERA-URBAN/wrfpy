@@ -10,515 +10,510 @@ from wrfpy.config import config
 from wrfpy import utils
 import os
 import argparse
-import sys
-from distutils.dir_util import copy_tree
-
 
 class wrfpy(config):
-    def __init__(self):
-        results = self._cli_parser()
-        global logger
-        logger = utils.start_logging(os.path.join(os.path.expanduser("~"),
-                                     'wrfpy.log'))
-        if results['init']:
-            self._create_directory_structure(results['suitename'],
-                                             results['basedir'])
-        elif results['create']:
-            self._create_cylc_config(results['suitename'],
-                                     results['basedir'])
+  def __init__(self):
+    results = self._cli_parser()
+    global logger
+    logger = utils.start_logging(os.path.join(os.path.expanduser("~"),
+                                              'wrfpy.log'))
+    if results['init']:
+      self._create_directory_structure(results['suitename'],
+                                        results['basedir'])
+    elif results['create']:
+      self._create_cylc_config(results['suitename'],
+                               results['basedir'])
 
-    def _cli_parser(self):
-        '''
-        parse command line arguments
-        '''
-        parser = argparse.ArgumentParser(
-            description='WRFpy',
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument('--init', action='store_true',
-                            help='Initialize suite')
-        parser.add_argument('--create', action='store_true',
-                            help='Create suite config')
-        parser.add_argument('--basedir', type=str,
-                            default=os.path.join(os.path.expanduser("~"),
-                                                 'cylc-suites'),
-                            help="basedir in which suites are installed")
-        parser.add_argument('--suitename', type=str, required=True,
-                            help='name')
-        results = vars(parser.parse_args())
-        # either initialize or create a suite, not both
-        if (results['init'] ^ results['create']):
-            return results
-        else:
-            # print error message to the user, combiniation of
-            #  --init and --create is not allowed
-            print("Only one of '--init' and '--create' is allowed.")
-            sys.exit()
 
-    def _create_directory_structure(self, suitename, basedir=None):
-        '''
-        Create directory structure for the Cylc configuration
-        '''
-        # set basedir to users home directory if not supplied
-        if not basedir:
-            basedir = os.path.join(os.path.expanduser("~"), 'cylc-suites')
-        # subdirectories to create
-        subdirs = ['bin', 'control', 'doc', 'inc']
-        # create subdirectories
-        [utils._create_directory(
-         os.path.join(basedir, suitename, subdir))
-         for subdir in subdirs]
-        # copy over cylc files
-        cylc_dir = os.path.join(sys.modules['wrfpy'].__path__[0], 'cylc')
-        copy_tree(cylc_dir, os.path.join(basedir, suitename, 'bin'))
-        # create empty json config file in suite directory
-        # this does not overwrite an existing config file
-        config.__init__(self, os.path.join(
-                        basedir, suitename, 'config.json'))
+  def _cli_parser(self):
+    '''
+    parse command line arguments
+    '''
+    parser = argparse.ArgumentParser(
+      description='WRFpy',
+      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--init', action='store_true',
+                        help='Initialize suite')
+    parser.add_argument('--create', action='store_true',
+                        help='Create suite config')
+    parser.add_argument('--basedir', type=str,
+                        default=os.path.join(os.path.expanduser("~"),
+                        'cylc-suites'),
+                        help="basedir in which suites are installed")
+    parser.add_argument('--suitename', type=str, required=True,
+                         help='name')
+    results = vars(parser.parse_args())
+    # either initialize or create a suite, not both
+    if (results['init'] ^ results['create']):
+      return results
+    else:
+      # print error message to the user, combiniation of --init and --create
+      # is not allowed
+      print("Only one of '--init' and '--create' is allowed.")
+      exit()
 
-    def _create_cylc_config(self, suitename, basedir):
-        '''
-        Create cylc suite.rc configuration file based on config.json
-        '''
-        config.__init__(self, os.path.join(
-                                        basedir, suitename, 'config.json'))
-        self.incr_hour = self.config['options_general']['run_hours']
-        self.wps_interval_hours = self.config['options_wps']['run_hours']
-        suiterc = self._header()
-        suiterc += self._scheduling()
-        suiterc += self._runtime()
-        suiterc += self._visualization()
-        self._write(suiterc, os.path.join(basedir, suitename, 'suite.rc'))
 
-    def _header(self):
-        '''
-        define suite.rc header information
-        '''
-        start_time = utils.datetime_to_string(
-            utils.return_validate(
-                self.config['options_general']['date_start']),
-            format='%Y%m%dT%H')
-        end_time = utils.datetime_to_string(
-            utils.return_validate(self.config['options_general']['date_end']),
-            format='%Y%m%dT%H')
-        # define template
-        template = """#!Jinja2
+  def _create_directory_structure(self, suitename, basedir=None):
+    '''
+    Create directory structure for the Cylc configuration
+    '''
+    # set basedir to users home directory if not supplied
+    if not basedir:
+      basedir = os.path.join(os.path.expanduser("~"), 'cylc-suites')
+    # subdirectories to create
+    subdirs = ['bin' , 'control', 'doc', 'inc']
+    # create subdirectories
+    [utils._create_directory(
+     os.path.join(basedir, suitename, subdir))
+     for subdir in subdirs]
+    # create empty json config file in suite directory
+    # this does not overwrite an existing config file
+    config.__init__(self, os.path.join(
+                    basedir, suitename, 'config.json'))
+
+
+  def _create_cylc_config(self, suitename, basedir):
+    '''
+    Create cylc suite.rc configuration file based on config.json
+    '''
+    config.__init__(self, os.path.join(
+                    basedir, suitename, 'config.json'))
+    self.incr_hour = self.config['options_general']['run_hours']
+    self.wps_interval_hours = self.config['options_wps']['run_hours']
+    suiterc = self._header()
+    suiterc += self._scheduling()
+    suiterc += self._runtime()
+    suiterc += self._visualization()
+    self._write(suiterc, os.path.join(basedir, suitename, 'suite.rc'))
+
+
+  def _header(self):
+    '''
+    define suite.rc header information
+    '''
+    start_time = utils.datetime_to_string(
+      utils.return_validate(self.config['options_general']['date_start']),
+      format='%Y%m%dT%H')
+    end_time = utils.datetime_to_string(
+      utils.return_validate(self.config['options_general']['date_end']),
+      format='%Y%m%dT%H')
+    # define template
+    template = """#!Jinja2
 
 {{% set START = "{start_time}" %}}
 {{% set STOP  = "{end_time}" %}}
 
 """
-        # context variables in template
-        context = {
-            "start_time": start_time,
-            "end_time": end_time
-            }
-        return template.format(**context)
+    # context variables in template
+    context = {
+      "start_time":start_time,
+      "end_time":end_time
+      }
+    return template.format(**context)
 
-    def _scheduling(self):
-        '''
-        define suite.rc scheduling information
-        '''
-        # get start_hour and increment time from config.json
-        start_hour = str(
-            utils.return_validate(
-                self.config['options_general']['date_start']).hour).zfill(2)
-        # define template
-        template = """[scheduling]
-    initial cycle point = {{{{ START }}}}
-    final cycle point   = {{{{ STOP }}}}
-    [[dependencies]]
-        # Initial cycle point
-        [[[R1/T{start_hour}]]]
-            graph = \"\"\"
-                wrf_init => wps => wrf_real => wrfda => wrf_run => upp
-                obsproc_init => obsproc_run => wrfda
-            \"\"\"
-        # Repeat every {incr_hour} hours,
-        # starting {incr_hour} hours after initial cylce point
-        [[[+PT{incr_hour}H/PT{incr_hour}H]]]
-            graph = \"\"\"
-                wrf_run[-PT{incr_hour}H] => wrf_init => wrf_real => wrfda => wrf_run => upp
-                wrfda[-PT{incr_hour}H] => obsproc_init => obsproc_run => wrfda
-            \"\"\"
-        # Repeat every {wps_incr_hour} hours,
-        # starting {wps_incr_hour} hours after initial cylce point
-        [[[+PT{wps_incr_hour}H/PT{wps_incr_hour}H]]]
-            graph = \"\"\"
-                wps[-PT{wps_incr_hour}H] => wps
-            \"\"\"
+  def _scheduling(self):
+    '''
+    define suite.rc scheduling information
+    '''
+    # get start_hour and increment time from config.json
+    start_hour = str(
+      utils.return_validate(
+      self.config['options_general']['date_start']).hour).zfill(2)
+    # define template
+    template = """[scheduling]
+  initial cycle point = {{{{ START }}}}
+  final cycle time   = {{{{ STOP }}}}
+  [[dependencies]]
+    # Initial cycle point
+    [[[R1/T{start_hour}]]]
+      graph = \"\"\"
+        wrf_init => wps => wrf_real => wrfda => wrf_run => upp
+        obsproc_init => obsproc_run => wrfda
+      \"\"\"
+    # Repeat every {incr_hour} hours, starting {incr_hour} hours after initial cylce point
+    [[[+PT{incr_hour}H/PT{incr_hour}H]]]
+      graph = \"\"\"
+        wrf_run[-PT{incr_hour}H] => wrf_init => wrf_real => wrfda => wrf_run => upp
+        wrfda[-PT{incr_hour}H] => obsproc_init => obsproc_run => wrfda
+      \"\"\"
+    # Repeat every {wps_incr_hour} hours, starting {wps_incr_hour} hours after initial cylce point
+    [[[+PT{wps_incr_hour}H/PT{wps_incr_hour}H]]]
+      graph = \"\"\"
+        wps[-PT{wps_incr_hour}H] => wps
+      \"\"\"
 """
-        # context variables in template
-        context = {
-            "start_hour": start_hour,
-            "incr_hour": self.incr_hour,
-            "wps_incr_hour": self.wps_interval_hours
-            }
-        return template.format(**context)
+    # context variables in template
+    context = {
+      "start_hour": start_hour,
+      "incr_hour": self.incr_hour,
+      "wps_incr_hour": self.wps_interval_hours
+      }
+    return template.format(**context)
 
-    def _runtime(self):
-        '''
-        define suite.rc runtime information
-        '''
-        return (self._runtime_base() + self._runtime_init_wrf() +
-                self._runtime_init_obsproc() + self._runtime_real() +
-                self._runtime_wrf() + self._runtime_obsproc() +
-                self._runtime_wrfda() + self._runtime_upp() +
-                self._runtime_wps())
 
-    def _runtime_base(self):
-        '''
-        define suite.rc runtime information: base
-        '''
-        # define template
-        template = """[runtime]
-    [[root]] # suite defaults
-        [[[job submission]]]
-            method = background
+  def _runtime(self):
+    '''
+    define suite.rc runtime information
+    '''
+    return (self._runtime_base() + self._runtime_init_wrf() +
+            self._runtime_init_obsproc() + self._runtime_real() +
+            self._runtime_wrf() + self._runtime_obsproc() +
+            self._runtime_wrfda() + self._runtime_upp() +
+            self._runtime_wps())
+
+
+  def _runtime_base(self):
+    '''
+    define suite.rc runtime information: base
+    '''
+    # define template
+    template = """[runtime]
+  [[root]] # suite defaults
+    [[[job submission]]]
+      method = background
 """
-        # context variables in template
-        context = {}
-        return template.format(**context)
+    # context variables in template
+    context = {}
+    return template.format(**context)
 
-    def _runtime_init_wrf(self):
-        '''
-        define suite.rc runtime information: init
-        '''
-        init_command = "wrf_init.py $CYLC_TASK_CYCLE_POINT {incr_hour}"
-        init_context = {
-            "incr_hour": self.incr_hour
-            }
-        init = init_command.format(**init_context)
-        # define template
-        template = """
-    [[wrf_init]]
-        script = \"\"\"
+
+  def _runtime_init_wrf(self):
+    '''
+    define suite.rc runtime information: init
+    '''
+    init_command = "wrf_init.py $CYLC_TASK_CYCLE_POINT {incr_hour}"
+    init_context = {
+      "incr_hour": self.incr_hour
+      }
+    init = init_command.format(**init_context)
+    # define template
+    template = """
+  [[wrf_init]]
+    script = \"\"\"
 {wrf_init}
 \"\"\"
-        [[[job submission]]]
-            method = {method}
-        [[[directives]]]
-            {directives}"""
-        # context variables in template
-        context = {
-            "wrf_init": init,
-            "method": "background",
-            "directives": ""
-            }
-        return template.format(**context)
+    [[[job submission]]]
+      method = {method}
+    [[[directives]]]
+      {directives}"""
+    # context variables in template
+    context = {
+      "wrf_init": init,
+      "method": "background",
+      "directives": ""
+      }
+    return template.format(**context)
 
-    def _runtime_init_obsproc(self):
-        '''
-        define suite.rc runtime information: init
-        '''
-        init = "wrfda_obsproc_init.py $CYLC_TASK_CYCLE_POINT"
-        # define template
-        template = """
-    [[obsproc_init]]
-        script = \"\"\"
+  def _runtime_init_obsproc(self):
+    '''
+    define suite.rc runtime information: init
+    '''
+    init = "wrfda_obsproc_init.py $CYLC_TASK_CYCLE_POINT"
+    # define template
+    template = """
+  [[obsproc_init]]
+    script = \"\"\"
 {obsproc_init}
 \"\"\"
-        [[[job submission]]]
-            method = {method}
-        [[[directives]]]
-            {directives}"""
-        # context variables in template
-        context = {
-            "obsproc_init":  init,
-            "method": "background",
-            "directives": ""
-            }
-        return template.format(**context)
+    [[[job submission]]]
+      method = {method}
+    [[[directives]]]
+      {directives}"""
+    # context variables in template
+    context = {
+      "obsproc_init":  init,
+      "method": "background",
+      "directives": ""
+      }
+    return template.format(**context)
 
-    def _runtime_real(self):
-        '''
-        define suite.rc runtime information: real.exe
-        '''
-        # define template
-        template = """
-    [[wrf_real]]
-        script = \"\"\"
+
+  def _runtime_real(self):
+    '''
+    define suite.rc runtime information: real.exe
+    '''
+    # define template
+    template = """
+  [[wrf_real]]
+    script = \"\"\"
 {command}
 \"\"\"
-        [[[job submission]]]
-            method = {method}
-        [[[directives]]]
-            {directives}
+    [[[environment]]]
+      WORKDIR = {wrf_run_dir}
+      CYLC_TASK_WORK_DIR = $WORKDIR
+    [[[job submission]]]
+      method = {method}
+    [[[directives]]]
+      {directives}
 """
-        try:
-            if self.config['options_slurm']['slurm_real.exe']:
-                method = "slurm"
-                command = """#!/usr/bin/env bash
+    try:
+      if self.config['options_slurm']['slurm_real.exe']:
+        method = "slurm"
+        command="""#!/usr/bin/env bash
 omp_threads=1
 export OMP_NUM_THREADS=$omp_threads
-cd {wrf_run_dir}
 srun ./real.exe"""
-                with open(self.config['options_slurm']['slurm_real.exe'],
-                          'r') as myfile:
-                    directives = myfile.read().replace('\n', '\n            ')
-            else:
-                    method = "background"
-                    command = """#!/usr/bin/env bash
-cd {wrf_run_dir}
+        with open(self.config['options_slurm']['slurm_real.exe'], 'r') as myfile:
+          directives=myfile.read().replace('\n', '\n      ')
+      else:
+          method = "background"
+          command="""#!/usr/bin/env bash
 ./real.exe"""
-                    directives = ""
-        except KeyError:
-            # slurm_real.exe not found in config.json, default to background
-            method = "background"
-            command = """#!/usr/bin/env bash
-cd {wrf_run_dir}
+          directives=""
+    except KeyError:
+      # slurm_real.exe not found in config.json, default to background
+      method = "background"
+      command="""#!/usr/bin/env bash
 ./real.exe"""
-            directives = ""
-        # context variables in template
-        command_context = {
-            "wrf_run_dir": self.config['filesystem']['wrf_run_dir']
-        }
-        context = {
-            "command": command.format(**command_context),
-            "method": method,
-            "directives": directives
-            }
-        return template.format(**context)
+      directives=""
+    # context variables in template
+    context = {
+      "command": command,
+      "wrf_run_dir": self.config['filesystem']['wrf_run_dir'],
+      "method": method,
+      "directives": directives
+      }
+    return template.format(**context)
 
-    def _runtime_wrf(self):
-        '''
-        define suite.rc runtime information: wrf.exe
-        '''
-        # define template
-        template = """
-    [[wrf_run]]
-        script = \"\"\"
+
+  def _runtime_wrf(self):
+    '''
+    define suite.rc runtime information: wrf.exe
+    '''
+    # define template
+    template = """
+  [[wrf_run]]
+    script = \"\"\"
 {command}
 \"\"\"
-        [[[job submission]]]
-            method = {method}
-        [[[directives]]]
-            {directives}
+    [[[environment]]]
+      WORKDIR = {wrf_run_dir}
+      CYLC_TASK_WORK_DIR = $WORKDIR
+    [[[job submission]]]
+      method = {method}
+    [[[directives]]]
+      {directives}
 """
-        try:
-            if self.config['options_slurm']['slurm_wrf.exe']:
-                method = "slurm"
-                command = """#!/usr/bin/env bash
+    try:
+      if self.config['options_slurm']['slurm_wrf.exe']:
+        method = "slurm"
+        command = """#!/usr/bin/env bash
 if [ -n "$SLURM_CPUS_PER_TASK" ]; then
-    omp_threads=$SLURM_CPUS_PER_TASK
+  omp_threads=$SLURM_CPUS_PER_TASK
 else
-    omp_threads=1
+  omp_threads=1
 fi
 export OMP_NUM_THREADS=$omp_threads
-cd {wrf_run_dir}
 srun ./wrf.exe"""
-                with open(self.config['options_slurm']['slurm_wrf.exe'],
-                          'r') as myfile:
-                    directives = myfile.read().replace('\n', '\n            ')
-            else:
-                    method = "background"
-                    directives = ""
-                    command = """#!/usr/bin/env bash
-cd {wrf_run_dir}
+        with open(self.config['options_slurm']['slurm_wrf.exe'], 'r') as myfile:
+          directives=myfile.read().replace('\n', '\n      ')
+      else:
+          method = "background"
+          directives=""
+          command = """#!/usr/bin/env bash
 ./wrf.exe"""
-        except KeyError:
-            # slurm_real.exe not found in config.json, default to background
-            method = "background"
-            directives = ""
-            command = """#!/usr/bin/env bash
-cd {wrf_run_dir}
+    except KeyError:
+      # slurm_real.exe not found in config.json, default to background
+      method = "background"
+      directives=""
+      command = """#!/usr/bin/env bash
 ./wrf.exe"""
-        # context variables in template
-        command_context = {
-            "wrf_run_dir": self.config['filesystem']['wrf_run_dir']
-        }
-        context = {
-            "command": command.format(**command_context),
-            "method": method,
-            "directives": directives
-            }
-        return template.format(**context)
+    # context variables in template
+    context = {
+      "command": command,
+      "wrf_run_dir": self.config['filesystem']['wrf_run_dir'],
+      "method": method,
+      "directives": directives
+      }
+    return template.format(**context)
 
-    def _runtime_obsproc(self):
-        '''
-        define suite.rc runtime information: obsproc.exe
-        '''
-        # define template
-        template = """
-    [[obsproc_run]]
-        script = \"\"\"
+
+  def _runtime_obsproc(self):
+    '''
+    define suite.rc runtime information: obsproc.exe
+    '''
+    # define template
+    template = """
+  [[obsproc_run]]
+    script = \"\"\"
 {command}
 \"\"\"
-        [[[job submission]]]
-            method = {method}
-        [[[directives]]]
-            {directives}
+    [[[environment]]]
+      WORKDIR = {obsproc_dir}
+      CYLC_TASK_WORK_DIR = $WORKDIR
+    [[[job submission]]]
+      method = {method}
+    [[[directives]]]
+      {directives}
 """
-        try:
-            if self.config['options_slurm']['slurm_obsproc.exe']:
-                method = "slurm"
-                command = """#!/usr/bin/env bash
-cd {obsproc_dir}
+    try:
+      if self.config['options_slurm']['slurm_obsproc.exe']:
+        method="slurm"
+        command="""#!/usr/bin/env bash
 srun ./obsproc.exe"""
-                with open(self.config[
-                          'options_slurm']['slurm_obsproc.exe'],
-                          'r') as myfile:
-                    directives = myfile.read().replace('\n', '\n            ')
-            else:
-                    method = "background"
-                    command = """#!/usr/bin/env bash
-cd {obsproc_dir}
+        with open(self.config[
+                  'options_slurm']['slurm_obsproc.exe'], 'r') as myfile:
+          directives=myfile.read().replace('\n', '\n      ')
+      else:
+          method = "background"
+          command="""#!/usr/bin/env bash
 ./obsproc.exe"""
-                    directives = ""
-        except KeyError:
-            # slurm_real.exe not found in config.json, default to background
-            method = "background"
-            command = """#!/usr/bin/env bash
-cd {obsproc_dir}
+          directives=""
+    except KeyError:
+      # slurm_real.exe not found in config.json, default to background
+      method = "background"
+      command="""#!/usr/bin/env bash
 ./obsproc.exe"""
-            directives = ""
-        # context variables in template
-        command_context = {
-            "obsproc_dir": os.path.join(self.config['filesystem']['work_dir'],
-                                        'obsproc',
-                                        self.config['filesystem'][
-                                                    'obs_filename']),
-        }
-        context = {
-            "command": command.format(**command_context),
-            "method": method,
-            "directives": directives
-            }
-        return template.format(**context)
+      directives=""
+    # context variables in template
+    context = {
+      "command": command,
+      "obsproc_dir": os.path.join(self.config['filesystem']['work_dir'], 'obsproc',
+                                  self.config['filesystem']['obs_filename']),
+      "method": method,
+      "directives": directives
+      }
+    return template.format(**context)
 
-    def _runtime_wrfda(self):
-        '''
-        define suite.rc runtime information: wrfda
-        '''
-        # define template
-        template = """
-    [[wrfda]]
-        script = \"\"\"
+
+  def _runtime_wrfda(self):
+    '''
+    define suite.rc runtime information: wrfda
+    '''
+    # define template
+    template = """
+  [[wrfda]]
+    script = \"\"\"
 {command}
 \"\"\"
-        [[[job submission]]]
-            method = {method}
-        [[[directives]]]
-            {directives}
+    [[[environment]]]
+      WORKDIR = {wrfda_dir}
+      CYLC_TASK_WORK_DIR = $WORKDIR
+    [[[job submission]]]
+      method = {method}
+    [[[directives]]]
+      {directives}
 """
-        command = "wrfda_run.py $CYLC_TASK_CYCLE_POINT"
-        try:
-            if self.config['options_slurm']['slurm_da_wrfvar.exe']:
-                method = "slurm"
-                with open(self.config[
-                          'options_slurm']['slurm_da_wrfvar.exe'],
-                          'r') as myfile:
-                    directives = myfile.read().replace('\n', '\n            ')
-            else:
-                    method = "background"
-                    directives = ""
-        except KeyError:
-            # slurm_real.exe not found in config.json, default to background
-            method = "background"
-            directives = ""
-        # context variables in template
-        context = {
-            "wrfda_dir": os.path.join(self.config['filesystem']['work_dir'],
-                                      'wrfda'),
-            "command": command,
-            "method": method,
-            "directives": directives
-            }
-        return template.format(**context)
+    command="wrfda_run.py $CYLC_TASK_CYCLE_POINT"
+    try:
+      if self.config['options_slurm']['slurm_da_wrfvar.exe']:
+        method="slurm"
+        with open(self.config[
+                  'options_slurm']['slurm_da_wrfvar.exe'], 'r') as myfile:
+          directives=myfile.read().replace('\n', '\n      ')
+      else:
+          method = "background"
+          directives=""
+    except KeyError:
+      # slurm_real.exe not found in config.json, default to background
+      method = "background"
+      directives=""
+    # context variables in template
+    context = {
+      "wrfda_dir": os.path.join(self.config['filesystem']['work_dir'], 'wrfda'),
+      "command": command,
+      "method": method,
+      "directives": directives
+      }
+    return template.format(**context)
 
-    def _runtime_upp(self):
-        '''
-        define suite.rc runtime information: wrfda
-        '''
-        # define template
-        template = """
-    [[upp]]
-        script = \"\"\"
+  def _runtime_upp(self):
+    '''
+    define suite.rc runtime information: wrfda
+    '''
+    # define template
+    template = """
+  [[upp]]
+    script = \"\"\"
 {command}
 \"\"\"
-        [[[environment]]]
-        [[[job submission]]]
-            method = {method}
-        [[[directives]]]
-            {directives}
+    [[[environment]]]
+    [[[job submission]]]
+      method = {method}
+    [[[directives]]]
+      {directives}
 """
-        command = "upp.py $CYLC_TASK_CYCLE_POINT"
-        context = {
-            "command": command,
-            "method": "background",
-            "directives": ""
-            }
-        return template.format(**context)
+    command="upp.py $CYLC_TASK_CYCLE_POINT"
+    context = {
+      "command": command,
+      "method": "background",
+      "directives": ""
+      }
+    return template.format(**context)
 
-    def _runtime_wps(self):
-        '''
-        define suite.rc runtime information: wrfda
-        '''
-        # define template
-        template = """
-    [[wps]]
-        pre-script = \"\"\"
+  def _runtime_wps(self):
+    '''
+    define suite.rc runtime information: wrfda
+    '''
+    # define template
+    template = """
+  [[wps]]
+    pre-script = \"\"\"
 {pre_command}
 \"\"\"
-        script = \"\"\"
+    script = \"\"\"
 {command}
 \"\"\"
-        post-script = \"\"\"
+    post-script = \"\"\"
 {post_command}
 \"\"\"
-        [[[job submission]]]
-            method = {method}
-        [[[directives]]]
-            {directives}
+    [[[environment]]]
+      WORKDIR = {wps_workdir}
+      CYLC_TASK_WORK_DIR = $WORKDIR
+    [[[job submission]]]
+      method = {method}
+    [[[directives]]]
+      {directives}
 """
-        pre_command = "wps_init.py $CYLC_TASK_CYCLE_POINT {wps_run_hours}"
-        pre_command_context = {
-            "wps_run_hours": self.wps_interval_hours,
-        }
-        command = """#!/usr/bin/env bash
-cd {wps_workdir}
+    pre_command="wps_init.py $CYLC_TASK_CYCLE_POINT {wps_run_hours}"
+    pre_command_context = {
+      "wps_run_hours": self.wps_interval_hours,
+    }
+    command="""#!/usr/bin/env bash
 {wps_dir}/ungrib/ungrib.exe
 {wps_dir}/metgrid/metgrid.exe"""
-        command_context = {
-            "wps_dir": self.config['filesystem']['wps_dir'],
-            "wps_workdir": os.path.join(self.config['filesystem']['work_dir'],
-                                        'wps')
-        }
-        post_command = "wps_post.py"
-        context = {
-            "pre_command": pre_command.format(**pre_command_context),
-            "command": command.format(**command_context),
-            "post_command": post_command,
-            "method": "background",
-            "directives": ""
-            }
-        return template.format(**context)
+    command_context = {
+      "wps_dir": self.config['filesystem']['wps_dir']
+    }
+    post_command="wps_post.py"
+    context = {
+      "wps_workdir": os.path.join(self.config['filesystem']['work_dir'], 'wps'),
+      "pre_command": pre_command.format(**pre_command_context),
+      "command": command.format(**command_context),
+      "post_command": post_command,
+      "method": "background",
+      "directives": ""
+      }
+    return template.format(**context)
 
-    def _visualization(self):
-        '''
-        define suite.rc visualization information
-        '''
-        # define template
-        template = """
+  def _visualization(self):
+    '''
+    define suite.rc visualization information
+    '''
+    # define template
+    template = """
 [visualization]
-    initial cycle point = {{ START }}
-    final cycle point = {{ STOP }}
-    default node attributes = "style=filled", "fillcolor=grey"
+  initial cycle point = {{ START }}
+  final cycle time   = {{ STOP }}
+  default node attributes = "style=filled", "fillcolor=grey"
 """
-        return template
+    return template
 
-    def _write(self, suiterc, filename):
-        '''
-        write cylc suite.rc config to file
-        '''
-        # create the itag file and write content to it based on the template
-        try:
-            with open(filename, 'w') as itag:
-                itag.write(suiterc)
-        except IOError:
-            # logger.error('Unable to write itag file: %s' %filename)
-            raise  # re-raise exception
-        # logger.debug('Leave write_itag')
+
+  def _write(self, suiterc, filename):
+    '''
+    write cylc suite.rc config to file
+    '''
+    # create the itag file and write content to it based on the template
+    try:
+      with open(filename, 'w') as itag:
+        itag.write(suiterc)
+    except IOError as e:
+      #logger.error('Unable to write itag file: %s' %filename)
+      raise  # re-raise exception
+    #logger.debug('Leave write_itag')
 
 
 if __name__ == "__main__":
-    wrfpy()
+  wrfpy()
+
