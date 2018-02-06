@@ -61,7 +61,7 @@ class config:
                   'slurm_metgrid.exe', 'slurm_geogrid.exe',
                   'slurm_obsproc.exe', 'slurm_updatebc.exe',
                   'slurm_da_wrfvar.exe']
-
+    keys_urbantemps = ['TRL_URB', 'TBL_URB', 'TGL_URB', 'TSLB']  
     # create dictionaries
     config_dir = {key: '' for key in keys_dir}
     options_general = {key: '' for key in keys_general}
@@ -70,6 +70,7 @@ class config:
     options_upp = {key: '' for key in keys_upp}
     options_wps = {key: '' for key in keys_wps}
     options_slurm = {key: '' for key in keys_slurm}
+    options_urbantemps = {key: '' for key in keys_urbantemps}
     # combine dictionaries
     config_out = {}
     config_out['filesystem'] = config_dir
@@ -79,6 +80,7 @@ class config:
     config_out['options_slurm'] = options_slurm
     config_out['options_wrfda'] = options_wrfda
     config_out['options_general'] = options_general
+    config_out['options_urbantemps'] = options_urbantemps
     # write json config file
     with open(self.configfile, 'w') as outfile:
       json.dump(config_out, outfile,sort_keys=True, indent=4)

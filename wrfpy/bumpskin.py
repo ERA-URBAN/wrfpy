@@ -359,58 +359,86 @@ class bumpskin(config):
         TGR_URB[:] = TGR_URB[:] + diffT
 
         # roof layer temperature
-        TRL_URB = self.wrfinput2.variables['TRL_URB']
+        try:
+            TRL_URB_factors = self.config['options_urbantemps']['TRL_URB']
+        except KeyError:
+            # fallback values if none are defined in config
+            # these may not work correctly for other cities than Amsterdam
+            TRL_URB_factors = [0.625, 0.390, 0.244, 0.152]
+        if not (isinstance(TRL_URB_factors, list) and
+                len(TRL_URB_factors) > 1):
+            TRL_URB_factors = [0.625, 0.390, 0.244, 0.152]
         levs = numpy.shape(self.wrfinput2.variables['TRL_URB'][:])[1]
+        TRL_URB = self.wrfinput2.variables['TRL_URB']
         for lev in range(0, levs):
-            if lev == 0:
-                TRL_URB[0, lev, :] = TRL_URB[0, lev, :] + diffT * 0.625
-            elif lev == 1:
-                TRL_URB[0, lev, :] = TRL_URB[0, lev, :] + diffT * 0.390
-            elif lev == 2:
-                TRL_URB[0, lev, :] = TRL_URB[0, lev, :] + diffT * 0.244
-            elif lev == 3:
-                TRL_URB[0, lev, :] = TRL_URB[0, lev, :] + diffT * 0.152
-
-        # wall layer temperature
-        TBL_URB = self.wrfinput2.variables['TBL_URB']
-        levs = numpy.shape(self.wrfinput2.variables['TBL_URB'][:])[1]
-        for lev in range(0, levs):
-            if lev == 0:
-                TBL_URB[0, lev, :] = TBL_URB[0, lev, :] + diffT * 0.709
-            elif lev == 1:
-                TBL_URB[0, lev, :] = TBL_URB[0, lev, :] + diffT * 0.503
-            elif lev == 2:
-                TBL_URB[0, lev, :] = TBL_URB[0, lev, :] + diffT * 0.357
-            elif lev == 3:
-                TBL_URB[0, lev, :] = TBL_URB[0, lev, :] + diffT * 0.253
-
-        # road layer temperature
-        TGL_URB = self.wrfinput2.variables['TGL_URB']
-        levs = numpy.shape(self.wrfinput2.variables['TGL_URB'][:])[1]
-        for lev in range(0, levs):
-            if lev == 0:
-                TGL_URB[0, lev, :] = TGL_URB[0, lev, :] + diffT * 0.734
-            elif lev == 1:
-                TGL_URB[0, lev, :] = TGL_URB[0, lev, :] + diffT * 0.157
-            elif lev == 2:
-                TGL_URB[0, lev, :] = TGL_URB[0, lev, :] + diffT * 0.007
-            else:
+            try:
+                TRL_URB[0, lev, :] = (TRL_URB[0, lev, :] + 
+                                      diffT * float(TRL_URB_factors[lev]))
+            except IndexError:
+                # no factor for this layer => no increment
                 pass
 
-        #  adjustment soil for vegetation fraction urban cell,
-        #  only first three levels
+        # wall layer temperature
+        try:
+            TBL_URB_factors = self.config['options_urbantemps']['TBL_URB']
+        except KeyError:
+            # fallback values if none are defined in config
+            # these may not work correctly for other cities than Amsterdam
+            TBL_URB_factors = [0.709, 0.503, 0.357, 0.253]
+        if not (isinstance(TBL_URB_factors, list) and
+                len(TBL_URB_factors) > 1):
+            TBL_URB_factors = [0.709, 0.503, 0.357, 0.253]
+        TBL_URB = self.wrfinput2.variables['TBL_URB']
+        levs = numpy.shape(self.wrfinput2.variables['TBL_URB'][:])[1]
+        TBL_URB = self.wrfinput2.variables['TBL_URB']
+        for lev in range(0, levs):
+            try:
+                TBL_URB[0, lev, :] = (TBL_URB[0, lev, :] + 
+                                      diffT * float(TBL_URB_factors[lev]))
+            except IndexError:
+                # no factor for this layer => no increment
+                pass
+
+        # road layer temperature
+        try:
+            TGL_URB_factors = self.config['options_urbantemps']['TGL_URB']
+        except KeyError:
+            # fallback values if none are defined in config
+            # these may not work correctly for other cities than Amsterdam
+            TGL_URB_factors = [0.734, 0.157, 0.007]
+        if not (isinstance(TGL_URB_factors, list) and
+                len(TGL_URB_factors) > 1):
+            TGL_URB_factors = [0.734, 0.157, 0.007]
+        TGL_URB = self.wrfinput2.variables['TGL_URB']
+        levs = numpy.shape(self.wrfinput2.variables['TGL_URB'][:])[1]
+        TGL_URB = self.wrfinput2.variables['TGL_URB']
+        for lev in range(0, levs):
+            try:
+                TGL_URB[0, lev, :] = (TGL_URB[0, lev, :] + 
+                                      diffT * float(TGL_URB_factors[lev]))
+            except IndexError:
+                # no factor for this layer => no increment
+                pass
+
+        #  adjustment soil for vegetation fraction urban cell
+        try:
+            TSLB_factors = self.config['options_urbantemps']['TSLB']
+        except KeyError:
+            # fallback values if none are defined in config
+            # these may not work correctly for other cities than Amsterdam
+            TSLB_factors = [0.499, 0.015]
+        if not (isinstance(TSLB_factors, list) and
+                len(TSLB_factors) > 1):
+            TSLB_factors = [0.499, 0.015]
         TSLB = self.wrfinput2.variables['TSLB']  # after update_lsm
         TSLB_in = self.wrfinput3.variables['TSLB']  # before update_lsm
         levs = numpy.shape(self.wrfinput2.variables['TSLB'][:])[1]
         for lev in range(0, levs):
             # reset TSLB for urban cells to value before update_lsm
             TSLB[0, lev, :][LU_IND == 1] = TSLB_in[0, lev, :][LU_IND == 1]
-            # apply diffT for first and second level
-            if lev == 0:
-                TSLB[0, lev, :] = TSLB[0, lev, :] + diffT * 0.499
-            elif lev == 1:
-                TSLB[0, lev, :] = TSLB[0, lev, :] + diffT * 0.015
-            else:
+            try:
+                TSLB[0, lev, :] = TSLB[0, lev, :] + diffT * float(TSLB_factors[lev])
+            except IndexError:
                 pass
 
         # close netcdf file
