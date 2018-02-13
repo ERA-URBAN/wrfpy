@@ -10,6 +10,7 @@ from wrfpy.config import config
 from wrfpy import utils
 from datetime import datetime
 
+
 class wrfda_interpolate(config):
   def __init__(self, itype='rural'):
     if itype not in ['rural', 'urban', 'both']:
@@ -103,10 +104,12 @@ class wrfda_interpolate(config):
     for variable in variables:
       var =  self.wrfinput_p.variables[variable][0,:] - self.fg_p.variables[variable][0,:]
       var_i = var[self.wrfinput_p.variables['LU_INDEX'][0,:]==1].reshape(-1)
-      #intp_var = interpolate.griddata((self.XLONG_p.reshape(-1),self.XLAT_p.reshape(-1)), var.reshape(-1), (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c))
-      intp_var = interpolate.griddata((XLONG_p_i,XLAT_p_i), var_i, (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c))
-      # for urban variables, only increment where LU_INDEX==1
-      if variable in ['TC_URB','TR_URB','TB_URB','TG_URB','TS_URB']:
+      if variable not in ['TC_URB','TR_URB','TB_URB','TG_URB','TS_URB']:
+        # interpolate regular wrfda variables with nearest neighbor interpolation
+        intp_var = interpolate.griddata((XLONG_p_i,XLAT_p_i), var_i, (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c))
+      else:
+        # use cubic interpolation for urban temperatures
+        intp_var = interpolate.griddata((XLONG_p_i,XLAT_p_i), var_i, (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='cubic').reshape(np.shape(self.XLONG_c))
         # only increment urban cells with LU_INDEX==1
         intp_var = intp_var * self.urb
       self.wrfinput_c.variables[variable][:] += intp_var
@@ -117,10 +120,13 @@ class wrfda_interpolate(config):
     for variable in variables:
       var =  self.wrfinput_p.variables[variable][0,:] - self.fg_p.variables[variable][0,:]
       var_i = (var[:,self.wrfinput_p.variables['LU_INDEX'][0,:]==1])
-      #intp_var = [interpolate.griddata((self.XLONG_p.reshape(-1),self.XLAT_p.reshape(-1)), var[lev,:].reshape(-1), (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c)) for lev in range(0,len(var))]
-      intp_var = [interpolate.griddata((XLONG_p_i,XLAT_p_i), var_i[lev,:], (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c)) for lev in range(0,len(var))]
-
-      if variable in ['TRL_URB','TBL_URB', 'TGL_URB', 'TSLB']:
+      if variable not in ['TRL_URB','TBL_URB', 'TGL_URB', 'TSLB']:
+        # interpolate regular wrfda variables with nearest neighbor interpolation
+        intp_var = [interpolate.griddata((XLONG_p_i,XLAT_p_i), var_i[lev,:], (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c)) for lev in range(0,len(var))]
+      else:
+        # use cubic interpolation for urban temperatures
+        intp_var = [interpolate.griddata((XLONG_p_i,XLAT_p_i), var_i[lev,:], (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='cubic').reshape(np.shape(self.XLONG_c)) for lev in range(0,len(var))]
+        # multiply with urban fraction
         intp_var = [np.array(intp_var)[lev,:] * self.urb for lev in range(0, len(var))]
         if variable == 'TSLB':
           for lev in range(0, len(var)):

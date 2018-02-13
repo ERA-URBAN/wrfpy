@@ -76,11 +76,48 @@ def find_gridpoint(lat_in, lon_in, lat, lon):
 
 
 class urbparm(config):
-    def __init__(self, dt, deltaT, infile):
+    def __init__(self, dtobj, infile):
         config.__init__(self)
-        self.options = self.read_tbl(infile)
-        self.change_AH(dt, deltaT)
-        self.write_tbl()
+        if self.config['options_urbantemps']['ah.csv']:
+            ahcsv = self.config['options_urbantemps']['ah.csv']
+            self.options = self.read_tbl(infile)
+            self.change_AH()
+            self.write_tbl()
+
+    def read_ah_csv(ahcsv, dtobj):
+        '''
+        read anthropogenic heat from csv file
+        columns are: yr, month, ah, alh
+        alh column is optional
+        '''
+        # initialize variables in csv file
+        yr = []
+        mnth = []
+        ah = []
+        alh = []  # optional
+        # start reading csv file
+        with open(ahcsv, 'r') as inp:
+            reader = csv.reader(inp)
+            next(reader)  # skip header
+            for row in reader:
+                # append variables
+                yr.append(int(row[0]))
+                mnth.append(int(row[1]))
+                ah.append(float(row[2]))
+                try:
+                    alh.append(float(row[3]))
+                except IndexError:
+                    alh.append(None)
+            yr = np.array(yr)
+            mnth = np.array(mnth)
+            ah = np.array(ah)
+            alh = np.array(alh)
+            self.ah = ah[(yr==dtobj.year) & (mnth==dtobj.month)][0]
+            if not float(self.ah)>0:
+                self.ah = None
+            self.alh = alh[(yr==dtobj.year) & (mnth==dtobj.month)][0]
+            if not float(self.alh)>0:
+                self.alh = None
 
     @staticmethod
     def read_tbl(tblfile):
@@ -129,16 +166,13 @@ class urbparm(config):
                                (key, self.options.get(key)))
         file.close()
 
-    def change_AH(self, dt, deltaT):
-        ah = [self.options['AH'][-1] * x for x in self.options['AHDIUPRF']]
-        added = 32.0 * deltaT
-        self.options['AHDIUPRF'] = numpy.around((ah+added)/max(ah+added), 2)
-        self.options['AH'][-1] = numpy.around(max(ah+added), 2)
-        self.options['AHDIUPRF'][self.options['AHDIUPRF'] < 0] = 0.001
-        self.options['AH'][self.options['AH'] < 0] = 0.1
-        print('deltaT: ', deltaT)
-        print('AHDIUPRF: ', self.options['AHDIUPRF'])
-        print('AH: ', self.options['AH'])
+    def change_AH(self):
+        if self.ah:
+            self.options['AH'][-1] = self.ah
+        if self.alh:
+            self.options['ALH'][-1] = self.alh
+
+
 
 
 class bumpskin(config):

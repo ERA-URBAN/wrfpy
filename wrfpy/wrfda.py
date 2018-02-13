@@ -37,6 +37,7 @@ class wrfda(config):
     '''
     Run all WRFDA steps
     '''
+    self.datestart = datestart
     self.obsproc_init(datestart)  # initialize obsrproc work directory
     self.obsproc_run()  # run obsproc.exe
     self.prepare_updatebc(datestart)  # prepares for updating low bc
@@ -185,9 +186,33 @@ class wrfda(config):
       self.config['filesystem']['wrfda_dir'],'var/da/da_wrfvar.exe'
       ), os.path.join(wrfda_workdir, 'da_wrfvar.exe'))
     if self.check_cv5_cv7():
-      # cv5:
-      os.symlink(self.config['options_wrfda']['be.dat'],
-                 os.path.join(wrfda_workdir, 'be.dat'))
+      # check if be.dat is a filepath or an array of filepaths
+      if isinstance(self.config['options_wrfda']['be.dat'], str):
+        # option is a filepath
+        os.symlink(self.config['options_wrfda']['be.dat'],
+                   os.path.join(wrfda_workdir, 'be.dat'))
+      elif isinstance(self.config['options_wrfda']['be.dat'], list):
+        if length(self.config['options_wrfda']['be.dat'])==1:
+          # lenght == 1, so threat the first element as a str case
+          month_idx = 0
+          os.symlink(self.config['options_wrfda']['be.dat'][0],
+                     os.path.join(wrfda_workdir, 'be.dat'))
+        elif length(self.config['options_wrfda']['be.dat'])==12:
+          # there is one be.dat matrix for each month
+          # find month number from self.datestart
+          month_idx = self.datestart.month - 1
+        else:
+          # list but not of length 1 or 12
+          raise IOError("config['options_wrfda']['be.dat'] should be a string or a",
+                        "list of length 1 or 12. Found a list of length",
+                        str(length(self.config['options_wrfda']['be.dat']))
+        # symlink the correct be.dat from the list
+        os.symlink(self.config['options_wrfda']['be.dat'][month_idx],
+                   os.path.join(wrfda_workdir, 'be.dat'))
+      else:
+        # not a list or str
+        raise TypeError("unkonwn type for be.dat configuration:",
+                        type(self.config['options_wrfda']['be.dat']))
     else:
       # cv3
       os.symlink(os.path.join(
