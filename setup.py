@@ -18,7 +18,7 @@ setup(
     packages=['wrfpy'],
     include_package_data = True,    # include everything in source control
     package_data={'wrfpy': ['cylc/*.py']},
-    scripts=['wrfpy/wrfpy'],
+    scripts=['wrfpy/scripts/wrfpy'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
