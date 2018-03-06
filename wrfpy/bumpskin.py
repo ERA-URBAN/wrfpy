@@ -13,6 +13,8 @@ from numpy import unravel_index
 from numpy import shape as npshape
 import glob
 import statsmodels.api as sm
+import csv
+import numpy as np
 
 
 def return_float_int(value):
@@ -80,11 +82,12 @@ class urbparm(config):
         config.__init__(self)
         if self.config['options_urbantemps']['ah.csv']:
             ahcsv = self.config['options_urbantemps']['ah.csv']
+            self.read_ah_csv(ahcsv, dtobj)
             self.options = self.read_tbl(infile)
             self.change_AH()
             self.write_tbl()
 
-    def read_ah_csv(ahcsv, dtobj):
+    def read_ah_csv(self, ahcsv, dtobj):
         '''
         read anthropogenic heat from csv file
         columns are: yr, month, ah, alh
@@ -108,19 +111,22 @@ class urbparm(config):
                     alh.append(float(row[3]))
                 except IndexError:
                     alh.append(None)
-            yr = np.array(yr)
-            mnth = np.array(mnth)
-            ah = np.array(ah)
-            alh = np.array(alh)
-            self.ah = ah[(yr==dtobj.year) & (mnth==dtobj.month)][0]
-            if not float(self.ah)>0:
-                self.ah = None
-            self.alh = alh[(yr==dtobj.year) & (mnth==dtobj.month)][0]
-            if not float(self.alh)>0:
-                self.alh = None
+        yr = np.array(yr)
+        mnth = np.array(mnth)
+        ah = np.array(ah)
+        alh = np.array(alh)
+        self.ah = ah[(yr==dtobj.year) & (mnth==dtobj.month)][0]
+        if not float(self.ah)>0:
+            self.ah = None
+        self.alh = alh[(yr==dtobj.year) & (mnth==dtobj.month)][0]
+        if not float(self.alh)>0:
+            self.alh = None
 
     @staticmethod
     def read_tbl(tblfile):
+        '''
+        Read URBPARM.TBL
+        '''
         COMMENT_CHAR = '#'
         OPTION_CHAR = ':'
         # process GEOGRID.TBL
@@ -143,6 +149,9 @@ class urbparm(config):
         return options
 
     def write_tbl(self):
+        '''
+        Write URBPARM.TBL to wrf run directory
+        '''
         outfile = os.path.join(self.config['filesystem']['wrf_run_dir'],
                                'URBPARM.TBL')
         # remove outfile if exists
@@ -167,6 +176,9 @@ class urbparm(config):
         file.close()
 
     def change_AH(self):
+        '''
+        Modify anthropogenic heat with ones in csv file
+        '''
         if self.ah:
             self.options['AH'][-1] = self.ah
         if self.alh:
@@ -402,6 +414,8 @@ class bumpskin(config):
         if not (isinstance(TRL_URB_factors, list) and
                 len(TRL_URB_factors) > 1):
             TRL_URB_factors = [0.625, 0.390, 0.244, 0.152]
+            print('using predefined TRL_URB factors: ' + str(TRL_URB_factors))
+
         levs = numpy.shape(self.wrfinput2.variables['TRL_URB'][:])[1]
         TRL_URB = self.wrfinput2.variables['TRL_URB']
         for lev in range(0, levs):
