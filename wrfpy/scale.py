@@ -36,17 +36,6 @@ class wrfda_interpolate(config):
         self.fix_3d_field('P', 'PH', 'SH2O', 'SMOIS', 'T', 'W', 'QVAPOR')
         self.fix_3d_field_uv(self.XLAT_U_p, self.XLONG_U_p, self.XLAT_U_c, self.XLONG_U_c, 'U')
         self.fix_3d_field_uv(self.XLAT_V_p, self.XLONG_V_p, self.XLAT_V_c, self.XLONG_V_c, 'V')
-      if ((itype=='urban') or (itype=='both')):
-        try:
-          if self.config['options_general']['fix_urban_temps']:
-            print("incrementing urban temperatures")
-            # calculate 0/1 matrix for urban cells
-            self.urb = np.zeros(np.shape(self.wrfinput_c.variables['LU_INDEX'][0,:]))
-            self.urb[self.wrfinput_c.variables['LU_INDEX'][0,:]==1] = 1
-            self.fix_2d_field('TC_URB','TR_URB','TB_URB','TG_URB','TS_URB')
-            self.fix_3d_field('TRL_URB','TBL_URB', 'TGL_URB', 'TSLB')
-        except KeyError:
-          pass
       if ndoms > 1:
         self.cleanup(dom)
 
@@ -99,40 +88,25 @@ class wrfda_interpolate(config):
       return dtobj, datestr
 
   def fix_2d_field(self, *variables):
-    XLONG_p_i = self.XLONG_p[self.wrfinput_p.variables['LU_INDEX'][0,:]==1].reshape(-1)
-    XLAT_p_i = self.XLAT_p[self.wrfinput_p.variables['LU_INDEX'][0,:]==1].reshape(-1)
+    #XLONG_p_i = self.XLONG_p[self.wrfinput_p.variables['LU_INDEX'][0,:]==1].reshape(-1)
+    #XLAT_p_i = self.XLAT_p[self.wrfinput_p.variables['LU_INDEX'][0,:]==1].reshape(-1)
+    XLONG_p_i = self.XLONG_p.reshape(-1)
+    XLAT_p_i = self.XLAT_p.reshape(-1)
     for variable in variables:
       var =  self.wrfinput_p.variables[variable][0,:] - self.fg_p.variables[variable][0,:]
-      var_i = var[self.wrfinput_p.variables['LU_INDEX'][0,:]==1].reshape(-1)
-      if variable not in ['TC_URB','TR_URB','TB_URB','TG_URB','TS_URB']:
-        # interpolate regular wrfda variables with nearest neighbor interpolation
-        intp_var = interpolate.griddata((XLONG_p_i,XLAT_p_i), var_i, (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c))
-      else:
-        # use cubic interpolation for urban temperatures
-        intp_var = interpolate.griddata((XLONG_p_i,XLAT_p_i), var_i, (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='cubic').reshape(np.shape(self.XLONG_c))
-        # only increment urban cells with LU_INDEX==1
-        intp_var = intp_var * self.urb
+      #var_i = var[self.wrfinput_p.variables['LU_INDEX'][0,:]==1].reshape(-1)
+      var_i = var.reshape(-1)
+      # interpolate regular wrfda variables with nearest neighbor interpolation
+      intp_var = interpolate.griddata((XLONG_p_i,XLAT_p_i), var_i, (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c))
       self.wrfinput_c.variables[variable][:] += intp_var
 
   def fix_3d_field(self, *variables):
-    XLONG_p_i = self.XLONG_p[self.wrfinput_p.variables['LU_INDEX'][0,:]==1].reshape(-1)
-    XLAT_p_i = self.XLAT_p[self.wrfinput_p.variables['LU_INDEX'][0,:]==1].reshape(-1)
+    XLONG_p_i = self.XLONG_p.reshape(-1)
+    XLAT_p_i = self.XLAT_p.reshape(-1)
     for variable in variables:
       var =  self.wrfinput_p.variables[variable][0,:] - self.fg_p.variables[variable][0,:]
-      var_i = (var[:,self.wrfinput_p.variables['LU_INDEX'][0,:]==1])
-      if variable not in ['TRL_URB','TBL_URB', 'TGL_URB', 'TSLB']:
-        # interpolate regular wrfda variables with nearest neighbor interpolation
-        intp_var = [interpolate.griddata((XLONG_p_i,XLAT_p_i), var_i[lev,:], (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c)) for lev in range(0,len(var))]
-      else:
-        # use cubic interpolation for urban temperatures
-        intp_var = [interpolate.griddata((XLONG_p_i,XLAT_p_i), var_i[lev,:], (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='cubic').reshape(np.shape(self.XLONG_c)) for lev in range(0,len(var))]
-        # multiply with urban fraction
-        intp_var = [np.array(intp_var)[lev,:] * self.urb for lev in range(0, len(var))]
-        if variable == 'TSLB':
-          for lev in range(0, len(var)):
-            # set urban cells to TSLB before update_lsm
-            self.wrfinput_c[variable][0,lev,:][self.urb==1] = self.wrfinput_c_nolsm[variable][0,lev,:][self.urb==1]
-        intp_var = [np.array(intp_var)[lev,:] * self.urb for lev in range(0, len(var))]
+      # interpolate regular wrfda variables with nearest neighbor interpolation
+      intp_var = [interpolate.griddata((XLONG_p_i,XLAT_p_i), var[lev,:].reshape(-1), (self.XLONG_c.reshape(-1),self.XLAT_c.reshape(-1)), method='nearest').reshape(np.shape(self.XLONG_c)) for lev in range(0,len(var))]
       self.wrfinput_c.variables[variable][:] += intp_var
 
   def fix_3d_field_uv(self,XLAT_p, XLONG_p, XLAT_c, XLONG_c, *variables):

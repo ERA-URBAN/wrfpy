@@ -15,6 +15,8 @@ import glob
 import statsmodels.api as sm
 import csv
 import numpy as np
+import f90nml
+from scipy import interpolate
 
 
 def return_float_int(value):
@@ -198,9 +200,16 @@ class bumpskin(config):
         self.wrf_rundir = self.config['filesystem']['work_dir']
         # verify input
         self.verify_input(filename)
-        # fix urban temperatures in outer domain
-        domain = 1
-        self.fix_temp(domain)
+        # get number of domains
+        wrf_nml = f90nml.read(self.config['options_wrf']['namelist.input'])
+        ndoms = wrf_nml['domains']['max_dom']
+        # check if ndoms is an integer and >0
+        if not (isinstance(ndoms, int) and ndoms>0):
+            raise ValueError("'domains_max_dom' namelist variable should be an " \
+                             "integer>0")
+        (lat, lon, diffT) = self.findDiffT(1)
+        for domain in range(1, ndoms+1):
+            self.applyToGrid(lat, lon, diffT, domain)
 
     def verify_input(self, filename):
         '''
@@ -232,6 +241,18 @@ class bumpskin(config):
         wrfinput.close()  # close netcdf file
         return dtobj, datestr
 
+    @staticmethod
+    def getCoords(wrfinput):
+        '''
+        Return XLAT,XLONG coordinates from wrfinput file
+        '''
+        wrfinput = Dataset(wrfinput, 'r')  # open netcdf file
+        lat = wrfinput.variables['XLAT'][0, :]
+        lon = wrfinput.variables['XLONG'][0, :]
+        lu_ind = wrfinput.variables['LU_INDEX'][0, :]
+        wrfinput.close()
+        return (lat,lon, lu_ind)
+
     def get_urban_temp(self, wrfinput, ams):
         '''
         get urban temperature TC2M
@@ -243,8 +264,8 @@ class bumpskin(config):
         U10_IND = wrfinput.variables['U10'][0, :]
         V10_IND = wrfinput.variables['V10'][0, :]
         UV10_IND = numpy.sqrt(U10_IND**2 + V10_IND**2)
-        lat = wrfinput.variables['XLAT'][0, :]  # [LU_IND==1]
-        lon = wrfinput.variables['XLONG'][0, :]  # [LU_IND==1]
+        lat = wrfinput.variables['XLAT'][0, :]
+        lon = wrfinput.variables['XLONG'][0, :]
         T2 = []
         U10 = []
         V10 = []
@@ -278,7 +299,7 @@ class bumpskin(config):
         return (T2, numpy.array(GLW), UV10, numpy.array(LU), LU_IND,
                 GLW_IND, UV10_IND)
 
-    def fix_temp(self, domain):
+    def findDiffT(self, domain):
         '''
         calculate increment of urban temperatures and apply increment
         to wrfinput file in wrfda directory
@@ -295,6 +316,7 @@ class bumpskin(config):
         # get modeled temperatures at location of observation stations
         t_urb, glw, uv10, lu, LU_IND, glw_IND, uv10_IND = self.get_urban_temp(
           wrfinput, obs)
+        lat, lon, lu_ind = self.getCoords(wrfinput)  # get coordinates
         diffT_station = numpy.array(obs_temp) - numpy.array(t_urb)
         # calculate median and standard deviation, ignore outliers > 10K
         # only consider landuse class 1
@@ -339,6 +361,22 @@ class bumpskin(config):
             else:  # use median
                 diffT = median * numpy.ones(numpy.shape(glw_IND))
             diffT[LU_IND != 1] = 0  # set to 0 if LU_IND!=1
+            return (lat, lon, diffT)
+
+    def applyToGrid(self, lat, lon, diffT, domain):
+        # load netcdf files
+        wrfda_workdir = os.path.join(self.wrfda_workdir, "d0" + str(domain))
+        wrfinputFile = os.path.join(wrfda_workdir, 'wrfvar_output')
+        lat2, lon2, lu_ind2 = self.getCoords(wrfinputFile)
+        # get datetime from wrfinput file
+        dtobj, datestr = self.get_time(wrfinputFile)
+        # if not ((lat==lat2) and (lon==lon2)) we need to interpolate
+        if not (np.array_equal(lat, lat2) and np.array_equal(lon, lon2)):
+            # do interpolation to get new diffT
+            diffT = interpolate.griddata((lon.reshape(-1), lat.reshape(-1)), diffT.reshape(-1),
+                                         (lon2.reshape(-1),lat2.reshape(-1)),
+                                          method='cubic').reshape(np.shape(lon2))
+            diffT[lu_ind2 != 1] = 0  # set to 0 if LU_IND!=1
         # open wrfvar_output (output after data assimilation)
         self.wrfinput2 = Dataset(os.path.join(wrfda_workdir, 'wrfvar_output'),
                                  'r+')
@@ -366,35 +404,26 @@ class bumpskin(config):
         lb_urb = self.wrfinput2.variables['BUILD_SURF_RATIO'][:]
         frc_urb = self.wrfinput2.variables['FRC_URB2D'][:]
         chc_urb = self.wrfinput2.variables['CHC_SFCDIF'][:]
-        try:
-            AH = self.wrfinput2.variables['UTCI_URB'][:]
-        except KeyError:
-            AH = numpy.zeros(numpy.shape(uc_urb))
-        print('mean AH:', numpy.nanmean(AH))
         R = numpy.maximum(numpy.minimum(lp_urb/frc_urb, 0.9), 0.1)
-        w = 1.0 - R
+        RW = 1.0 - R
         HNORM = 2. * hgt_urb * frc_urb / (lb_urb - lp_urb)
         HNORM[lb_urb <= lp_urb] = 10.0
-        ZR = numpy.maximum(numpy.minimum(hgt_urb, 100.0), 0.01)
+        ZR = numpy.maximum(numpy.minimum(hgt_urb, 100.0), 3.0)
         h = ZR / HNORM
-
+        W = 2 * h
+        # set safety margin on W/RW >=8 or else SLUCM could misbehave
+        # make sure to use the same safety margin in module_sf_urban.F
+        W[(W / RW) < 8.0] = ((8.0 / (W / RW)) * W)[(W / RW) < 8.0]
         CW = numpy.zeros(numpy.shape(uc_urb))
         CW[uc_urb > 5] = 7.51 * uc_urb[uc_urb > 5]**0.78
         CW[uc_urb <= 5] = 6.15 + 4.18 * uc_urb[uc_urb <= 5]
-        AHcan = AH * (2 * h + w)/(2 * h + w + (1 - w))
-        DTW = (diffT * (1 + ((w * rhocp) / (2 * h + w)) * (chc_urb/CW))
-               + (AHcan/CW))
-        mfactor = numpy.nanmean(DTW/diffT)
-        mfactor_max = numpy.nanmax(DTW/diffT)
+        DTW = diffT * (1 + ((RW * rhocp) / (W + RW)) * (chc_urb/CW))
+
         diffT = DTW  # change 09/01/2018
         diffT = numpy.nan_to_num(diffT)  # replace nan by 0
-        print('mean mfactor:', mfactor)
-        print('max mfactor:', mfactor_max)
-
+        # apply temperature changes
         TSK = self.wrfinput2.variables['TSK']
         TSK[:] = TSK[:] + diffT
-        TR_URB = self.wrfinput2.variables['TR_URB']
-        TR_URB[:] = TR_URB[:] + diffT
         TB_URB = self.wrfinput2.variables['TB_URB']
         TB_URB[:] = TB_URB[:] + diffT
         TG_URB = self.wrfinput2.variables['TG_URB']
@@ -403,28 +432,6 @@ class bumpskin(config):
         TS_URB[:] = TS_URB[:] + diffT
         TGR_URB = self.wrfinput2.variables['TGR_URB']
         TGR_URB[:] = TGR_URB[:] + diffT
-
-        # roof layer temperature
-        try:
-            TRL_URB_factors = self.config['options_urbantemps']['TRL_URB']
-        except KeyError:
-            # fallback values if none are defined in config
-            # these may not work correctly for other cities than Amsterdam
-            TRL_URB_factors = [0.625, 0.390, 0.244, 0.152]
-        if not (isinstance(TRL_URB_factors, list) and
-                len(TRL_URB_factors) > 1):
-            TRL_URB_factors = [0.625, 0.390, 0.244, 0.152]
-            print('using predefined TRL_URB factors: ' + str(TRL_URB_factors))
-
-        levs = numpy.shape(self.wrfinput2.variables['TRL_URB'][:])[1]
-        TRL_URB = self.wrfinput2.variables['TRL_URB']
-        for lev in range(0, levs):
-            try:
-                TRL_URB[0, lev, :] = (TRL_URB[0, lev, :] + 
-                                      diffT * float(TRL_URB_factors[lev]))
-            except IndexError:
-                # no factor for this layer => no increment
-                pass
 
         # wall layer temperature
         try:
@@ -483,7 +490,7 @@ class bumpskin(config):
         levs = numpy.shape(self.wrfinput2.variables['TSLB'][:])[1]
         for lev in range(0, levs):
             # reset TSLB for urban cells to value before update_lsm
-            TSLB[0, lev, :][LU_IND == 1] = TSLB_in[0, lev, :][LU_IND == 1]
+            TSLB[0, lev, :][lu_ind2 == 1] = TSLB_in[0, lev, :][lu_ind2 == 1]
             try:
                 TSLB[0, lev, :] = TSLB[0, lev, :] + diffT * float(TSLB_factors[lev])
             except IndexError:
@@ -492,4 +499,3 @@ class bumpskin(config):
         # close netcdf file
         self.wrfinput2.close()
         self.wrfinput3.close()
-        self.median = median
