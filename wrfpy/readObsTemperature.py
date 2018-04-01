@@ -28,9 +28,32 @@ class readObsTemperature(config):
             # try to read an existing csv file
             self.read_csv(datestr)
         except IOError:
-            # reading existing csv file failed, start from scratch
-            self.obs_temp(dtobj)
-            self.write_csv(datestr)
+            if self.config['options_urbantemps']['urban_stations']:
+                # reading existing csv file failed, start from scratch
+                self.urbStations = self.config['options_urbantemps']['urban_stations']
+                self.verify_input()
+                self.obs_temp(dtobj)
+                self.write_csv(datestr)
+            else:
+                raise
+
+    def verify_input(self, filename):
+        '''
+        verify input and create list of files
+        '''
+        try:
+            f = Dataset(self.urbStations, 'r')
+            f.close()
+            self.filelist = [self.urbStations]
+        except IOError:
+            # file is not a netcdf file, assuming a txt file containing a 
+            # list of netcdf files
+            if os.path.isdir(self.urbStations):
+                # path is actually a directory, not a file
+                self.filelist = glob.glob(os.path.join(self.urbStations, '*nc'))
+            else:
+                # re-raise error
+                raise
 
     def obs_temp(self, dtobj):
         '''
