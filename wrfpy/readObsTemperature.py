@@ -37,7 +37,7 @@ class readObsTemperature(config):
             else:
                 raise
 
-    def verify_input(self, filename):
+    def verify_input(self):
         '''
         verify input and create list of files
         '''
