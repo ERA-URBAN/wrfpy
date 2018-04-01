@@ -10,6 +10,7 @@ from netCDF4 import date2num
 import numpy as np
 import bisect
 from datetime import datetime
+import glob
 
 
 class readObsTemperature(config):
