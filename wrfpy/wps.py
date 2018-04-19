@@ -28,10 +28,14 @@ class wps(config):
     utils._create_directory(self.wps_workdir)
 
 
-  def _initialize(self, datestart, dateend):
+  def _initialize(self, datestart, dateend, boundarydir=False):
     '''
     Initialize WPS working directory / namelist
     '''
+    if not boundarydir:
+      self.boundarydir = self.config['filesystem']['boundary_dir']
+    else:
+      self.boundarydir = boundarydir
     self._clean_boundaries_wps()  # clean leftover boundaries
     self._prepare_namelist(datestart, dateend)
     self._link_boundary_files()
@@ -84,7 +88,7 @@ class wps(config):
     link boundary grib files to wps work directory with the required naming
     '''
     # get list of files to link
-    filelist = glob.glob(os.path.join(self.config['filesystem']['boundary_dir'], '*'))
+    filelist = glob.glob(os.path.join(self.boundarydir, '*'))
     # make sure we only have files
     filelist = [fl for fl in filelist if os.path.isfile(fl)]
     if len(filelist) == 0:
@@ -168,6 +172,7 @@ class wps(config):
     run geogrid.exe (locally or using slurm script defined in config.json)
     '''
     if len(self.config['options_slurm']['slurm_geogrid.exe']):
+      # run using slurm
       if j_id:
         mid = "--dependency=afterok:%d" %j_id
         geogrid_command = ['sbatch', mid, self.config['options_slurm']['slurm_geogrid.exe']]
@@ -184,7 +189,11 @@ class wps(config):
       except subprocess.CalledProcessError:
         #logger.error('Metgrid failed %s:' %geogrid_command)
         raise  # re-raise exception
-      return j_id  # return slurm job-id
+      while True:
+        time.sleep(1)
+        if not utils.testjob(j_id):
+          utils.testjobsucces(j_id)
+          break
     else:
       geogrid_command = os.path.join(self.config['filesystem']['wps_dir'],
                                     'geogrid', 'geogrid.exe')
@@ -202,6 +211,7 @@ class wps(config):
     run ungrib.exe (locally or using slurm script defined in config.json)
     '''
     if len(self.config['options_slurm']['slurm_ungrib.exe']):
+      # run using slurm
       if j_id:
         mid = "--dependency=afterok:%d" %j_id
         ungrib_command = ['sbatch', mid, self.config['options_slurm']['slurm_ungrib.exe']]
@@ -220,7 +230,11 @@ class wps(config):
       except subprocess.CalledProcessError:
         #logger.error('Ungrib failed %s:' %ungrib_command)
         raise  # re-raise exception
-      return j_id  # return slurm job-id
+      while True:
+        time.sleep(1)
+        if not utils.testjob(j_id):
+          utils.testjobsucces(j_id)
+          break
     else:
       ungrib_command = os.path.join(self.config['filesystem']['wps_dir'],
                               'ungrib', 'ungrib.exe')
@@ -238,6 +252,7 @@ class wps(config):
     run metgrid.exe (locally or using slurm script defined in config.json)
     '''
     if len(self.config['options_slurm']['slurm_metgrid.exe']):
+      # run using slurm
       if j_id:
         mid = "--dependency=afterok:%d" %j_id
         metgrid_command = ['sbatch', mid, self.config['options_slurm']['slurm_metgrid.exe']]
@@ -254,7 +269,11 @@ class wps(config):
       except subprocess.CalledProcessError:
         #logger.error('Metgrid failed %s:' %metgrid_command)
         raise  # re-raise exception
-      return j_id  # return slurm job-id
+      while True:
+        time.sleep(1)
+        if not utils.testjob(j_id):
+          utils.testjobsucces(j_id)
+          break
     else:
       metgrid_command = os.path.join(self.config['filesystem']['wps_dir'],
                               'metgrid', 'metgrid.exe')
