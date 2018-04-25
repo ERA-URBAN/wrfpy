@@ -171,39 +171,51 @@ class wps(config):
     '''
     run geogrid.exe (locally or using slurm script defined in config.json)
     '''
-    if len(self.config['options_slurm']['slurm_geogrid.exe']):
-      # run using slurm
-      if j_id:
-        mid = "--dependency=afterok:%d" %j_id
-        geogrid_command = ['sbatch', mid, self.config['options_slurm']['slurm_geogrid.exe']]
+    # get number of domains from wps namelist
+    wps_nml = f90nml.read(self.config['options_wps']['namelist.wps'])
+    ndoms = wps_nml['share']['max_dom']
+    # check if geo_em files already exist for all domains
+    try:
+      for dom in range(1, ndoms + 1):
+        fpath = self.config['filesystem']['wps_dir']
+        fname = "geo_em.d{}.nc".format(str(dom).zfill(2))
+        ncfile = Dataset(os.path.join(fpath, fname))
+        ncfile.close()
+    except IOError:
+      # create geo_em nc files
+      if len(self.config['options_slurm']['slurm_geogrid.exe']):
+        # run using slurm
+        if j_id:
+          mid = "--dependency=afterok:%d" %j_id
+          geogrid_command = ['sbatch', mid, self.config['options_slurm']['slurm_geogrid.exe']]
+        else:
+          geogrid_command = ['sbatch', self.config['options_slurm']['slurm_geogrid.exe']]
+        utils.check_file_exists(geogrid_command[1])
+        utils.silentremove(os.path.join(self.wps_workdir, 'geogrid', 'geogrid.exe'))
+        os.symlink(os.path.join(self.config['filesystem']['wps_dir'],'geogrid','geogrid.exe'),
+                   os.path.join(self.wps_workdir, 'geogrid', 'geogrid.exe'))
+        try:
+          res = subprocess.check_output(geogrid_command, cwd=self.wps_workdir,
+                                        stderr=utils.devnull())
+          j_id = int(res.split()[-1])  # slurm job-id
+        except subprocess.CalledProcessError:
+          #logger.error('Metgrid failed %s:' %geogrid_command)
+          raise  # re-raise exception
+        while True:
+          time.sleep(1)
+          if not utils.testjob(j_id):
+            utils.testjobsucces(j_id)
+            break
       else:
-        geogrid_command = ['sbatch', self.config['options_slurm']['slurm_geogrid.exe']]
-      utils.check_file_exists(geogrid_command[1])
-      utils.silentremove(os.path.join(self.wps_workdir, 'geogrid', 'geogrid.exe'))
-      os.symlink(os.path.join(self.config['filesystem']['wps_dir'],'geogrid','geogrid.exe'),
-                 os.path.join(self.wps_workdir, 'geogrid', 'geogrid.exe'))
-      try:
-        res = subprocess.check_output(geogrid_command, cwd=self.wps_workdir,
-                                      stderr=utils.devnull())
-        j_id = int(res.split()[-1])  # slurm job-id
-      except subprocess.CalledProcessError:
-        #logger.error('Metgrid failed %s:' %geogrid_command)
-        raise  # re-raise exception
-      while True:
-        time.sleep(1)
-        if not utils.testjob(j_id):
-          utils.testjobsucces(j_id)
-          break
-    else:
-      geogrid_command = os.path.join(self.config['filesystem']['wps_dir'],
-                                    'geogrid', 'geogrid.exe')
-      utils.check_file_exists(geogrid_command)
-      try:
-        subprocess.check_call(geogrid_command, cwd=self.wps_workdir,
-                              stdout=utils.devnull(), stderr=utils.devnull())
-      except subprocess.CalledProcessError:
-        #logger.error('Geogrid failed %s:' %geogrid_command)
-        raise  # re-raise exception
+        geogrid_command = os.path.join(self.config['filesystem']['wps_dir'],
+                                      'geogrid', 'geogrid.exe')
+        utils.check_file_exists(geogrid_command)
+        try:
+          subprocess.check_call(geogrid_command, cwd=self.wps_workdir,
+                                stdout=utils.devnull(), stderr=utils.devnull())
+        except subprocess.CalledProcessError:
+          #logger.error('Geogrid failed %s:' %geogrid_command)
+          raise  # re-raise exception
 
 
   def _run_ungrib(self, j_id=None):
