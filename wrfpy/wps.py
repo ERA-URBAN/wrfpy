@@ -15,6 +15,8 @@ import f90nml
 from wrfpy.config import config
 from datetime import datetime
 import shutil
+from netCDF4 import Dataset
+
 
 class wps(config):
   '''
@@ -149,23 +151,25 @@ class wps(config):
     # geogrid
     if not os.path.isfile(os.path.join(self.wps_workdir, 'geogrid',
                                        'GEOGRID.TBL')):
-      geogridtbl = os.path.join(self.config['filesystem']['wps_dir'], 'geogrid',
-                                'GEOGRID.TBL.ARW')
+      if not self.config['options_wps']['geogrid.tbl']:
+        geogridtbl = os.path.join(self.config['filesystem']['wps_dir'], 'geogrid',
+                                  'GEOGRID.TBL.ARW')
+      else:
+        geogridtbl = self.config['options_wps']['geogrid.tbl']
       utils._create_directory(os.path.join(self.wps_workdir, 'geogrid'))
       os.symlink(geogridtbl, os.path.join(self.wps_workdir, 'geogrid',
                                           'GEOGRID.TBL'))
     # metgrid
     if not os.path.isfile(os.path.join(self.wps_workdir, 'metgrid',
                                        'METGRID.TBL')):
-      metgridtbl = os.path.join(self.config['filesystem']['wps_dir'], 'metgrid',
-                                'METGRID.TBL.ARW')
+      if not self.config['options_wps']['metgrid.tbl']:
+        metgridtbl = os.path.join(self.config['filesystem']['wps_dir'], 'metgrid',
+                                  'METGRID.TBL.ARW')
+      else:
+        metgridtbl = self.config['options_wps']['metgrid.tbl']
       utils._create_directory(os.path.join(self.wps_workdir, 'metgrid'))
       os.symlink(metgridtbl, os.path.join(self.wps_workdir, 'metgrid',
                                           'METGRID.TBL'))
-    # geogrid
-
-    utils._create_directory(os.path.join(self.wps_workdir, 'geogrid'))
-
 
   def _run_geogrid(self, j_id=None):
     '''
