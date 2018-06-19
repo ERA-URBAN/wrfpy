@@ -2,6 +2,8 @@
     :target: https://opensource.org/licenses/Apache-2.0
 .. image:: https://travis-ci.org/ERA-URBAN/wrfpy.svg?branch=master
     :target: https://travis-ci.org/ERA-URBAN/wrfpy
+.. image:: https://zenodo.org/badge/44315673.svg
+   :target: https://zenodo.org/badge/latestdoi/44315673
 
 WRFpy
 =====
