@@ -72,11 +72,11 @@ def check_file_exists(filename, boolean=False):
     check if file exists and is readable, else raise IOError
     '''
     try:
-            with open(filename):
-                    if boolean:
-                        return True
-                    else:
-                        pass  # file exists and is readable, nothing else to do
+        with open(filename):
+            if boolean:
+                return True
+            else:
+                pass  # file exists and is readable, nothing else to do
     except IOError:
         if boolean:
             return False

@@ -86,8 +86,6 @@ class config:
       json.dump(config_out, outfile,sort_keys=True, indent=4)
     # print message pointing user to edit config file
     self._print_config_message()
-    exit()  # exit
-
 
   def _print_config_message(self):
     '''

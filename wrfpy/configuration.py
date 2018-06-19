@@ -12,6 +12,7 @@ import os
 from distutils.dir_util import copy_tree
 import pkg_resources
 
+
 class configuration(config):
     def __init__(self, results):
         global logger
