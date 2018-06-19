@@ -1,0 +1,23 @@
+# YAML 1.2
+--- 
+authors: 
+  - 
+    affiliation: "Netherlands eScience Center"
+    family-names: Haren
+    given-names: Ronald
+    name-particle: van
+cff-version: "1.0.3"
+commit: 
+date-released: 2018-06-19
+doi:
+keywords: 
+  - "WRF"
+  - "WRFDA"
+  - "urban nudging"
+  - "workflow"
+  - "cylc"
+license: Apache-2.0
+message: "If you use this software, please cite it using these metadata."
+repository-code: "https://github.com/ERA-URBAN/wrfpy"
+title: WRFpy
+version: "0.1.0"

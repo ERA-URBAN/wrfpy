@@ -1,0 +1,20 @@
+{
+    "description": "Python application to facilitate setting-up and running (long) Weather Research and Forecasting (WRF) simulations with (optionally) data assimilation",
+    "license": "Apache-2.0",
+    "title": "WRFpy",
+    "upload_type": "software",
+    "creators": [
+        {
+            "affiliation": "Netherlands eScience Center",
+            "name": "van Haren, Ronald"
+        }
+    ],
+    "access_right": "open",
+    "keywords": [
+        "WRF",
+        "WRFDA",
+        "radar",
+        "data assimilation",
+        "ascii"
+    ]
+}
