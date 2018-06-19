@@ -1,3 +1,8 @@
+.. image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
+    :target: https://opensource.org/licenses/Apache-2.0
+.. image:: https://travis-ci.org/ERA-URBAN/wrfpy.svg?branch=master
+    :target: https://travis-ci.org/ERA-URBAN/wrfpy
+
 WRFpy
 =====
 
