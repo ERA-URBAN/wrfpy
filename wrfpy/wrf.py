@@ -17,12 +17,18 @@ class run_wrf(config):
   '''
   run_wrf is a subclass of config  # TODO: use better names
   '''
-  def __init__(self, datestart, dateend):
+  def __init__(self):
     config.__init__(self)
     # TODO: wrf_run_dir should be flexible if running in UPP mode
     self.wrf_run_dir = self.config['filesystem']['wrf_run_dir']
-    self.cleanup_previous_wrf_run()
-    self.prepare_wrf_config(datestart, dateend)
+
+  def initialize(self, datestart, dateend):
+      '''
+      initialize new WRF run
+      '''
+      self.cleanup_previous_wrf_run()
+      self.prepare_wrf_config(datestart,
+                              dateend)
 
   def cleanup_previous_wrf_run(self):
     from utils import silentremove

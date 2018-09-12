@@ -11,11 +11,11 @@ def main(datestring, interval):
     '''
     Main function to initialize WPS timestep:
       - converts cylc timestring to datetime object
-      - calls wrf.__init()
+      - calls wrf.__init() and initialize()
     '''
     dt = utils.convert_cylc_time(datestring)
-    run_wrf(dt, dt + datetime.timedelta(hours=interval))
-
+    WRF = run_wrf()
+    WRF.initialize(dt, dt + datetime.timedelta(hours=interval))
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Initialize WRF step.')
