@@ -166,7 +166,7 @@ class wrfda(config):
                                               stderr=utils.devnull())
                 j_id = int(res.split()[-1])  # slurm job-id
             except subprocess.CalledProcessError:
-                logger.error('Obsproc failed %s:' % obsproc_command)
+                #logger.error('Obsproc failed %s:' % obsproc_command)
                 raise  # re-raise exception
             return j_id  # return slurm job-id
         else:
@@ -383,7 +383,7 @@ class wrfda(config):
                                               stderr=utils.devnull())
                 j_id = int(res.split()[-1])  # slurm job-id
             except subprocess.CalledProcessError:
-                logger.error('Wrfvar failed %s:' %wrfvar_command)
+                #logger.error('Wrfvar failed %s:' %wrfvar_command)
                 raise  # re-raise exception
             while True:
                 time.sleep(1)
@@ -482,7 +482,7 @@ class wrfda(config):
                                               stderr=utils.devnull())
                 j_id = int(res.split()[-1])  # slurm job-id
             except subprocess.CalledProcessError:
-                logger.error('Updatebc failed %s:' % updatebc_command)
+                #logger.error('Updatebc failed %s:' % updatebc_command)
                 raise  # re-raise exception
             while True:
                 time.sleep(0.5)
