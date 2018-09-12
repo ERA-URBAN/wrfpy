@@ -439,10 +439,10 @@ class bumpskin(config):
         except KeyError:
             # fallback values if none are defined in config
             # these may not work correctly for other cities than Amsterdam
-            TBL_URB_factors = [0.709, 0.503, 0.357, 0.253]
+            TBL_URB_factors = [0.823, 0.558, 0.379, 0.257]
         if not (isinstance(TBL_URB_factors, list) and
                 len(TBL_URB_factors) > 1):
-            TBL_URB_factors = [0.709, 0.503, 0.357, 0.253]
+            TBL_URB_factors = [0.823, 0.558, 0.379, 0.257]
         TBL_URB = self.wrfinput2.variables['TBL_URB']
         levs = numpy.shape(self.wrfinput2.variables['TBL_URB'][:])[1]
         TBL_URB = self.wrfinput2.variables['TBL_URB']
@@ -460,10 +460,10 @@ class bumpskin(config):
         except KeyError:
             # fallback values if none are defined in config
             # these may not work correctly for other cities than Amsterdam
-            TGL_URB_factors = [0.734, 0.157, 0.007]
+            TGL_URB_factors = [0.776, 0.170, 0.004]
         if not (isinstance(TGL_URB_factors, list) and
                 len(TGL_URB_factors) > 1):
-            TGL_URB_factors = [0.734, 0.157, 0.007]
+            TGL_URB_factors = [0.776, 0.170, 0.004]
         TGL_URB = self.wrfinput2.variables['TGL_URB']
         levs = numpy.shape(self.wrfinput2.variables['TGL_URB'][:])[1]
         TGL_URB = self.wrfinput2.variables['TGL_URB']
@@ -481,10 +481,10 @@ class bumpskin(config):
         except KeyError:
             # fallback values if none are defined in config
             # these may not work correctly for other cities than Amsterdam
-            TSLB_factors = [0.499, 0.015]
+            TSLB_factors = [0.507, 0.009]
         if not (isinstance(TSLB_factors, list) and
                 len(TSLB_factors) > 1):
-            TSLB_factors = [0.499, 0.015]
+            TSLB_factors = [0.507, 0.009]
         TSLB = self.wrfinput2.variables['TSLB']  # after update_lsm
         TSLB_in = self.wrfinput3.variables['TSLB']  # before update_lsm
         levs = numpy.shape(self.wrfinput2.variables['TSLB'][:])[1]
