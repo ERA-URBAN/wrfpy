@@ -3,7 +3,7 @@
 import argparse
 import datetime
 import time
-import utils
+from wrfpy import utils
 from wrfpy.config import config
 import os
 #from urb import urb

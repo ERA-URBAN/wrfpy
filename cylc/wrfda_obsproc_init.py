@@ -10,7 +10,7 @@ def obsproc_init(datestart):
     '''
     Initialize WPS timestep
     '''
-    WRFDA = wrfda()  # initialize object
+    WRFDA = wrfda(datestart)  # initialize object
     WRFDA.obsproc_init(datestart)
 
 
