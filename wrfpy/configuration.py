@@ -97,7 +97,7 @@ class configuration(config):
         # define template
         template = """[scheduling]
     initial cycle point = {{{{ START }}}}
-    final cycle time   = {{{{ STOP }}}}
+    final cycle point   = {{{{ STOP }}}}
     [[dependencies]]
         # Initial cycle point
         [[[R1]]]
@@ -372,7 +372,7 @@ class configuration(config):
         template = """
 [visualization]
     initial cycle point = {{ START }}
-    final cycle time   = {{ STOP }}
+    final cycle point   = {{ STOP }}
     default node attributes = "style=filled", "fillcolor=grey"
 """
         return template

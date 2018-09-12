@@ -147,8 +147,8 @@ class wrfda(config):
         '''
         run obsproc.exe
         '''
-        obsproc_dir = os.path.join(self.config['filesystem']['wrfda_dir'],
-                                   'var/obsproc')
+        obslist = list(set(self.obs.values()))
+        obsproc_dir = obslist[0][0]
         # TODO: check if output is file is created and no errors have occurred
         j_id = None
         if len(self.config['options_slurm']['slurm_obsproc.exe']):
