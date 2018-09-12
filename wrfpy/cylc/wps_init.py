@@ -3,26 +3,26 @@
 import argparse
 import datetime
 import time
-from wps import wps
-import utils
+from wrfpy.wps import wps
+from wrfpy import utils
 
 
-def wps_init(datestart, dateend, boundarydir):
+def wps_init(datestart, dateend):
     '''
     Initialize WPS timestep
     '''
-    WPS = wps(datestart, dateend, boundarydir)  # initialize object
-    WPS._initialize()
+    WPS = wps()  # initialize object
+    WPS._initialize(datestart, dateend)
 
 
-def main(datestring, interval, boundarydir):
+def main(datestring, interval):
     '''
     Main function to initialize WPS timestep:
       - converts cylc timestring to datetime object
       - calls wps_init()
     '''
-    dt = utils.convert_cylc_time2(datestring)
-    wps_init(dt, dt + datetime.timedelta(hours=interval), boundarydir)
+    dt = utils.convert_cylc_time(datestring)
+    wps_init(dt, dt + datetime.timedelta(hours=interval))
 
 
 if __name__=="__main__":
@@ -31,10 +31,7 @@ if __name__=="__main__":
                         help='Date-time string from cylc suite')
     parser.add_argument('interval', metavar='I', type=int,
 			help='Time interval in hours')
-    parser.add_argument('directory', metavar='D', type=str,
-                        help='Directory containing boundary files')
-
     # parse arguments
     args = parser.parse_args()
     # call main
-    main(args.datestring, args.interval, args.directory)    
+    main(args.datestring, args.interval)    

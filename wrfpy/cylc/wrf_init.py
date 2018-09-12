@@ -3,8 +3,8 @@
 import argparse
 import datetime
 import time
-from wrf import run_wrf
-import utils
+from wrfpy.wrf import run_wrf
+from wrfpy import utils
 
 
 def main(datestring, interval):
@@ -13,7 +13,7 @@ def main(datestring, interval):
       - converts cylc timestring to datetime object
       - calls wrf.__init()
     '''
-    dt = utils.convert_cylc_time2(datestring)
+    dt = utils.convert_cylc_time(datestring)
     run_wrf(dt, dt + datetime.timedelta(hours=interval))
 
 
