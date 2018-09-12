@@ -121,10 +121,10 @@ class wps(config):
         list_ext = [ext[i3] + ext[i2] + ext[i1]]
       i1 += 1  # increment i1
       if i1 >= len(ascii_uppercase):
-        i1 = 1
+        i1 = 0
         i2 += 1  # increment i2
         if i2 >= len(ascii_uppercase):
-          i2 = 1
+          i2 = 0
           i3 += 1  # increment i3
           if i3 >= len(ascii_uppercase):
             message = 'Too many files to link'
