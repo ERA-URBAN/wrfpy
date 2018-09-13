@@ -12,6 +12,8 @@ import glob
 import os
 import f90nml
 from wrfpy import utils
+import subprocess
+
 
 class run_wrf(config):
   '''
@@ -20,7 +22,7 @@ class run_wrf(config):
   def __init__(self):
     config.__init__(self)
     # TODO: wrf_run_dir should be flexible if running in UPP mode
-    self.wrf_run_dir = self.config['filesystem']['wrf_run_dir']
+    self.wrf_rundir = self.config['filesystem']['wrf_run_dir']
 
   def initialize(self, datestart, dateend):
       '''
@@ -125,9 +127,9 @@ class run_wrf(config):
                                       stderr=utils.devnull())
         j_id = int(res.split()[-1])  # slurm job-id
       except subprocess.CalledProcessError:
-        logger.error('Real failed %s:' %real_command)
+        #logger.error('Real failed %s:' %real_command)
         raise  # re-raise exception
-      return j_id  # return slurm job-id
+      utils.waitJobToFinish(j_id)
     else:  # run locally
       real_command = os.path.join(self.config['filesystem']['wrf_dir'],
                               'main', 'real.exe')
@@ -136,7 +138,7 @@ class run_wrf(config):
         subprocess.check_call(real_command, cwd=self.wrf_rundir,
                               stdout=utils.devnull(), stderr=utils.devnull())
       except subprocess.CalledProcessError:
-        logger.error('real.exe failed %s:' %real_command)
+        #logger.error('real.exe failed %s:' %real_command)
         raise  # re-raise exception
 
 
@@ -162,7 +164,7 @@ class run_wrf(config):
       except subprocess.CalledProcessError:
         logger.error('Wrf failed %s:' %wrf_command)
         raise  # re-raise exception
-      return j_id  # return slurm job-id
+      utils.waitJobToFinish(j_id)
     else:  # run locally
       wrf_command = os.path.join(self.config['filesystem']['wrf_dir'],
                               'main', 'wrf.exe')

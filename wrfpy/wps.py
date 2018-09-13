@@ -205,11 +205,7 @@ class wps(config):
         except subprocess.CalledProcessError:
           #logger.error('Metgrid failed %s:' %geogrid_command)
           raise  # re-raise exception
-        while True:
-          time.sleep(1)
-          if not utils.testjob(j_id):
-            utils.testjobsucces(j_id)
-            break
+        utils.waitJobToFinish(j_id)
       else:
         geogrid_command = os.path.join(self.config['filesystem']['wps_dir'],
                                       'geogrid', 'geogrid.exe')
@@ -246,11 +242,7 @@ class wps(config):
       except subprocess.CalledProcessError:
         #logger.error('Ungrib failed %s:' %ungrib_command)
         raise  # re-raise exception
-      while True:
-        time.sleep(1)
-        if not utils.testjob(j_id):
-          utils.testjobsucces(j_id)
-          break
+      utils.waitJobToFinish(j_id)
     else:
       ungrib_command = os.path.join(self.config['filesystem']['wps_dir'],
                               'ungrib', 'ungrib.exe')
@@ -285,11 +277,7 @@ class wps(config):
       except subprocess.CalledProcessError:
         #logger.error('Metgrid failed %s:' %metgrid_command)
         raise  # re-raise exception
-      while True:
-        time.sleep(1)
-        if not utils.testjob(j_id):
-          utils.testjobsucces(j_id)
-          break
+      utils.waitJobToFinish(j_id)
     else:
       metgrid_command = os.path.join(self.config['filesystem']['wps_dir'],
                               'metgrid', 'metgrid.exe')

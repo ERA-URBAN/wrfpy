@@ -125,11 +125,7 @@ class retry_wrf(config):
       except subprocess.CalledProcessError:
         #logger.error('WRF failed %s:' %wrf_command)
         raise  # re-raise exception
-      while True:
-        time.sleep(1)
-        if not utils.testjob(j_id):
-          utils.testjobsucces(j_id)
-          break
+      utils.waitJobToFinish(j_id)
     else:
       # run locally
       subprocess.check_call(os.path.join(self.wrf_run_dir, 'wrf.exe'), cwd=self.wrf_run_dir,

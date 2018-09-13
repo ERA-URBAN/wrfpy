@@ -232,7 +232,13 @@ def testjobsucces(id):
     else:
         return True
 
-
+def waitJobToFinish(id):
+    while True:
+        time.sleep(1)
+        if not testjob(j_id):
+              testjobsucces(j_id)
+              break
+    
 def convert_cylc_time(string):
         import datetime
         import dateutil.parser

@@ -168,7 +168,7 @@ class wrfda(config):
             except subprocess.CalledProcessError:
                 #logger.error('Obsproc failed %s:' % obsproc_command)
                 raise  # re-raise exception
-            return j_id  # return slurm job-id
+            utils.waitJobToFinish(j_id)
         else:
             # run locally
             subprocess.check_call(os.path.join(obsproc_dir, 'obsproc.exe'),
@@ -385,10 +385,7 @@ class wrfda(config):
             except subprocess.CalledProcessError:
                 #logger.error('Wrfvar failed %s:' %wrfvar_command)
                 raise  # re-raise exception
-            while True:
-                time.sleep(1)
-                if not utils.testjob(j_id):
-                    break
+            utils.waitJobToFinish(j_id)
         else:
             # run locally
             subprocess.check_call([os.path.join(wrfda_workdir,
@@ -484,10 +481,7 @@ class wrfda(config):
             except subprocess.CalledProcessError:
                 #logger.error('Updatebc failed %s:' % updatebc_command)
                 raise  # re-raise exception
-            while True:
-                time.sleep(0.5)
-                if not utils.testjob(j_id):
-                    break
+            utils.waitJobToFinish(j_id)
         else:
             # run locally
             subprocess.check_call(os.path.join
