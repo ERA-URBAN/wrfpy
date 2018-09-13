@@ -11,6 +11,9 @@ import os
 from wrfpy import utils
 import f90nml
 import yaml
+import glob
+import shutil
+
 
 class config:
   '''
@@ -41,7 +44,7 @@ class config:
     # read json config file
     self._read_json()
     # check config file for consistency and errors
-    #self._check_config()
+    self._check_config()
 
 
   def _create_empty_config(self):
@@ -201,7 +204,7 @@ class config:
                                'integer in %s' %self.configfile)
     # boundary interval should not be larger than time between start_date
     # and end_date
-    assert ((self.config['options_general']['boundary_interval']*3600) < (
+    assert ((self.config['options_general']['boundary_interval']) <= (
       end_date - start_date).total_seconds()), (
         'boundary interval is larger than time between start_date and '
         'end_date')
@@ -225,7 +228,7 @@ class config:
     check if namelist.wps is in the required format and has all keys needed
     '''
     # verify that example namelist.wps exists and is not removed by user
-    basepath = utils.get_script_path()
+    basepath = utils.get_wrfpy_path()
     self.example_file = os.path.join(basepath, 'examples', 'namelist.wps')
     utils.check_file_exists(self.example_file)
     # load specified namelist
@@ -282,7 +285,8 @@ class config:
     wrf_run_dir = self.config['filesystem']['wrf_run_dir']
     utils._create_directory(wrf_run_dir)
     # create list of files in self.config['filesystem']['wrf_dir']/run
-    files = glob.glob(os.path.join(self.config['filesystem']['wrf_dir'], run))
+    files = glob.glob(os.path.join(self.config['filesystem']['wrf_dir'],
+                                   'run', '*'))
     for fl in files:
         fname = os.path.basename(fl)
         if (os.path.splitext(fname)[1] == '.exe'):

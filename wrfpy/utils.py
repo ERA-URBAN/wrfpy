@@ -203,11 +203,12 @@ def _create_directory(path):
             raise  # re-raise exception if a different error occured
 
 
-def get_script_path():
+def get_wrfpy_path():
     '''
-    get the path of the python script
+    get the path of wrfpy installation
     '''
-    return os.path.dirname(os.path.realpath(sys.argv[0]))
+    import wrfpy
+    return os.path.dirname(os.path.realpath(wrfpy.__file__))
 
 
 def testjob(j_id):
