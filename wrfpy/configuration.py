@@ -124,7 +124,7 @@ class configuration(config):
         # after initial cylce point
         [[[+PT{wps_incr_hour}H/PT{wps_incr_hour}H]]]
             graph = \"\"\"
-                wps[-PT{wps_incr_hour}H] => wps
+                wps[-PT{wps_incr_hour}H] => wps => wrf_init
             \"\"\"
 """
         # context variables in template
