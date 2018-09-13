@@ -29,7 +29,7 @@ class dataAssimilation(config):
             radarTarget = os.path.join(self.config['filesystem']['work_dir'],
                                     'wrfda', 'd01', 'ob.radar')
             shutil.copyfile(radarFile, radarTarget)
-        except KeyError:
+        except (KeyError, IOError):
             pass
         # prepare for running da_wrfvar.exe
         WRFDA.prepare_wrfda()
