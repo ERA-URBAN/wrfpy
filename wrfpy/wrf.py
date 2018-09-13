@@ -13,6 +13,7 @@ import os
 import f90nml
 from wrfpy import utils
 import subprocess
+import shutil
 
 
 class run_wrf(config):
@@ -21,16 +22,33 @@ class run_wrf(config):
   '''
   def __init__(self):
     config.__init__(self)
-    # TODO: wrf_run_dir should be flexible if running in UPP mode
     self.wrf_rundir = self.config['filesystem']['wrf_run_dir']
 
   def initialize(self, datestart, dateend):
       '''
       initialize new WRF run
       '''
+      self.check_wrf_rundir()
       self.cleanup_previous_wrf_run()
       self.prepare_wrf_config(datestart,
                               dateend)
+
+  def check_wrf_rundir(self):
+    '''
+    check if rundir exists
+    if rundir doesn't exist, copy over content
+    of self.config['filesystem']['wrf_dir']/run
+    '''
+    utils._create_directory(self.wrf_rundir)
+    # create list of files in self.config['filesystem']['wrf_dir']/run
+    files = glob.glob(os.path.join(self.config['filesystem']['wrf_dir'],
+                                   'run', '*'))
+    for fl in files:
+        fname = os.path.basename(fl)
+        if (os.path.splitext(fname)[1] == '.exe'):
+          # don't copy over the executables
+          continue
+        shutil.copyfile(fl, os.path.join(self.wrf_rundir, fname))
 
   def cleanup_previous_wrf_run(self):
     from utils import silentremove

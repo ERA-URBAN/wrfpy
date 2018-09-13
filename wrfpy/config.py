@@ -11,8 +11,6 @@ import os
 from wrfpy import utils
 import f90nml
 import yaml
-import glob
-import shutil
 
 
 class config:
@@ -269,30 +267,10 @@ class config:
       'No WRF namelist.input specified in config file')
     # check if specified namelist.wps exist and are readable
     utils.check_file_exists(self.config['options_wrf']['namelist.input'])
-    # check wrf_run_dir
-    self._check_wrf_rundir()
     # check if namelist.input is in the required format and has all keys needed
     self._check_namelist_wrf()
 
 
-  def _check_wrf_rundir(self):
-    '''
-    check if rundir exists
-    if rundir doesn't exist, copy over content
-    of self.config['filesystem']['wrf_dir']/run
-    '''
-    wrf_run_dir = self.config['filesystem']['wrf_run_dir']
-    utils._create_directory(wrf_run_dir)
-    # create list of files in self.config['filesystem']['wrf_dir']/run
-    files = glob.glob(os.path.join(self.config['filesystem']['wrf_dir'],
-                                   'run', '*'))
-    for fl in files:
-        fname = os.path.basename(fl)
-        if (os.path.splitext(fname)[1] == '.exe'):
-          # don't copy over the executables
-          continue
-        shutil.copyfile(fl, os.path.join(wrf_run_dir, fname))
- 
   def _check_namelist_wrf(self):
     '''
     check if namelist.input is in the required format and has all keys needed
