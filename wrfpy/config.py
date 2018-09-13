@@ -36,15 +36,14 @@ class config:
       self.configfile = wrfpy_config
     try:
       logger.debug('Checking if configuration file exists: %s' %self.configfile)
-      utils.check_file_exists(self.configfile)
+      utils.check_file_exists(self.configfile, boolean=False)
+      # read json config file
+      self._read_json()
+      # check config file for consistency and errors
+      self._check_config()
     except IOError:
       # create config file
       self._create_empty_config()
-      # TODO: exit and notify user to manually edit config file
-    # read json config file
-    self._read_json()
-    # check config file for consistency and errors
-    self._check_config()
 
 
   def _create_empty_config(self):
@@ -62,7 +61,7 @@ class config:
                     'boundary_interval', 'ref_lon',
                     'ref_lat', 'run_hours',
                     'fix_urban_temps']
-    keys_wps = ['namelist.wps', 'run_hours', 'vtable']
+    keys_wps = ['namelist.wps', 'run_hours', 'vtable', 'geogrid.tbl', 'metgrid.tbl']
     keys_slurm = ['slurm_real.exe', 'slurm_wrf.exe',
                   'slurm_ungrib.exe',
                   'slurm_metgrid.exe', 'slurm_geogrid.exe',
