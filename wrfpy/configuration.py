@@ -94,6 +94,14 @@ class configuration(config):
         start_hour = str(
             utils.return_validate
             (self.config['options_general']['date_start']).hour).zfill(2)
+        # check if we need to add upp
+        try:
+            if self.config['options_upp']['upp']:
+                uppBlock = "=> upp"
+            else:
+                uppBlock = ""
+        except KeyError:
+            uppBlock = ""
         # define template
         template = """[scheduling]
     initial cycle point = {{{{ START }}}}
@@ -102,14 +110,14 @@ class configuration(config):
         # Initial cycle point
         [[[R1]]]
             graph = \"\"\"
-                wrf_init => wps => wrf_real => wrfda => wrf_run => upp
+                wrf_init => wps => wrf_real => wrfda => wrf_run {upp}
                 obsproc_init => obsproc_run => wrfda
             \"\"\"
         # Repeat every {incr_hour} hours, starting {incr_hour} hours
         # after initial cylce point
         [[[+PT{incr_hour}H/PT{incr_hour}H]]]
             graph = \"\"\"
-                wrf_run[-PT{incr_hour}H] => wrf_init => wrf_real => wrfda => wrf_run => upp
+                wrf_run[-PT{incr_hour}H] => wrf_init => wrf_real => wrfda => wrf_run {upp}
                 wrfda[-PT{incr_hour}H] => obsproc_init => obsproc_run => wrfda
             \"\"\"
         # Repeat every {wps_incr_hour} hours, starting {wps_incr_hour} hours
@@ -123,7 +131,8 @@ class configuration(config):
         context = {
             "start_hour": start_hour,
             "incr_hour": self.incr_hour,
-            "wps_incr_hour": self.wps_interval_hours
+            "wps_incr_hour": self.wps_interval_hours,
+            "upp": uppBlock
             }
         return template.format(**context)
 
@@ -304,7 +313,6 @@ class configuration(config):
         script = \"\"\"
 {command}
 \"\"\"
-        [[[environment]]]
         [[[job submission]]]
             method = {method}
         [[[directives]]]

@@ -210,12 +210,12 @@ def get_script_path():
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
-def testjob(id):
+def testjob(j_id):
     import subprocess
-    command = "squeue -j %s" % id
+    command = "squeue -j %s" % j_id
     output = subprocess.check_output(command.split())
     try:
-        if id == int(output.split()[-8]):
+        if j_id == int(output.split()[-8]):
             return True
         else:
             return False
@@ -223,16 +223,17 @@ def testjob(id):
         return False
 
 
-def testjobsucces(id):
+def testjobsucces(j_id):
     import subprocess
-    command = "sacct -j %s --format=state" % id
+    command = "sacct -j %s --format=state" % j_id
     output = subprocess.check_output(command.split())
     if any(x in ['CANCELED', 'FAILED', 'TIMEOUT'] for x in output.split()):
         raise IOError('slurm command failed')
     else:
         return True
 
-def waitJobToFinish(id):
+def waitJobToFinish(j_id):
+    import time
     while True:
         time.sleep(1)
         if not testjob(j_id):
