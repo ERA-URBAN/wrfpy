@@ -17,7 +17,7 @@ setup(
     url = "https://github.com/ERA-URBAN/wrfpy",
     packages=['wrfpy'],
     include_package_data = True,    # include everything in source control
-    package_data={'wrfpy': ['cylc/*.py']},
+    package_data={'wrfpy': ['cylc/*.py', 'examples/*']},
     scripts=['wrfpy/scripts/wrfpy'],
     long_description=read('README.rst'),
     classifiers=[
