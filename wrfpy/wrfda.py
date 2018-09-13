@@ -147,8 +147,8 @@ class wrfda(config):
         '''
         run obsproc.exe
         '''
-        obsproc_dir = os.path.join(self.config['filesystem']['wrfda_dir'],
-                                   'var/obsproc')
+        obslist = list(set(self.obs.values()))
+        obsproc_dir = obslist[0][0]
         # TODO: check if output is file is created and no errors have occurred
         j_id = None
         if len(self.config['options_slurm']['slurm_obsproc.exe']):
@@ -166,9 +166,9 @@ class wrfda(config):
                                               stderr=utils.devnull())
                 j_id = int(res.split()[-1])  # slurm job-id
             except subprocess.CalledProcessError:
-                logger.error('Obsproc failed %s:' % obsproc_command)
+                #logger.error('Obsproc failed %s:' % obsproc_command)
                 raise  # re-raise exception
-            return j_id  # return slurm job-id
+            utils.waitJobToFinish(j_id)
         else:
             # run locally
             subprocess.check_call(os.path.join(obsproc_dir, 'obsproc.exe'),
@@ -383,12 +383,9 @@ class wrfda(config):
                                               stderr=utils.devnull())
                 j_id = int(res.split()[-1])  # slurm job-id
             except subprocess.CalledProcessError:
-                logger.error('Wrfvar failed %s:' %wrfvar_command)
+                #logger.error('Wrfvar failed %s:' %wrfvar_command)
                 raise  # re-raise exception
-            while True:
-                time.sleep(1)
-                if not utils.testjob(j_id):
-                    break
+            utils.waitJobToFinish(j_id)
         else:
             # run locally
             subprocess.check_call([os.path.join(wrfda_workdir,
@@ -482,12 +479,9 @@ class wrfda(config):
                                               stderr=utils.devnull())
                 j_id = int(res.split()[-1])  # slurm job-id
             except subprocess.CalledProcessError:
-                logger.error('Updatebc failed %s:' % updatebc_command)
+                #logger.error('Updatebc failed %s:' % updatebc_command)
                 raise  # re-raise exception
-            while True:
-                time.sleep(0.5)
-                if not utils.testjob(j_id):
-                    break
+            utils.waitJobToFinish(j_id)
         else:
             # run locally
             subprocess.check_call(os.path.join

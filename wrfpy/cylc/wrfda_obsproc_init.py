@@ -3,14 +3,14 @@
 import argparse
 import datetime
 import time
-import utils
-from wrfda import wrfda
+from wrfpy import utils
+from wrfpy.wrfda import wrfda
 
 def obsproc_init(datestart):
     '''
     Initialize WPS timestep
     '''
-    WRFDA = wrfda()  # initialize object
+    WRFDA = wrfda(datestart)  # initialize object
     WRFDA.obsproc_init(datestart)
 
 
@@ -20,7 +20,7 @@ def main(datestring):
       - converts cylc timestring to datetime object
       - calls wps_init()
     '''
-    dt = utils.convert_cylc_time2(datestring)
+    dt = utils.convert_cylc_time(datestring)
     obsproc_init(dt)
 
 

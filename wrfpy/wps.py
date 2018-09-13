@@ -121,10 +121,10 @@ class wps(config):
         list_ext = [ext[i3] + ext[i2] + ext[i1]]
       i1 += 1  # increment i1
       if i1 >= len(ascii_uppercase):
-        i1 = 1
+        i1 = 0
         i2 += 1  # increment i2
         if i2 >= len(ascii_uppercase):
-          i2 = 1
+          i2 = 0
           i3 += 1  # increment i3
           if i3 >= len(ascii_uppercase):
             message = 'Too many files to link'
@@ -205,11 +205,7 @@ class wps(config):
         except subprocess.CalledProcessError:
           #logger.error('Metgrid failed %s:' %geogrid_command)
           raise  # re-raise exception
-        while True:
-          time.sleep(1)
-          if not utils.testjob(j_id):
-            utils.testjobsucces(j_id)
-            break
+        utils.waitJobToFinish(j_id)
       else:
         geogrid_command = os.path.join(self.config['filesystem']['wps_dir'],
                                       'geogrid', 'geogrid.exe')
@@ -246,11 +242,7 @@ class wps(config):
       except subprocess.CalledProcessError:
         #logger.error('Ungrib failed %s:' %ungrib_command)
         raise  # re-raise exception
-      while True:
-        time.sleep(1)
-        if not utils.testjob(j_id):
-          utils.testjobsucces(j_id)
-          break
+      utils.waitJobToFinish(j_id)
     else:
       ungrib_command = os.path.join(self.config['filesystem']['wps_dir'],
                               'ungrib', 'ungrib.exe')
@@ -285,11 +277,7 @@ class wps(config):
       except subprocess.CalledProcessError:
         #logger.error('Metgrid failed %s:' %metgrid_command)
         raise  # re-raise exception
-      while True:
-        time.sleep(1)
-        if not utils.testjob(j_id):
-          utils.testjobsucces(j_id)
-          break
+      utils.waitJobToFinish(j_id)
     else:
       metgrid_command = os.path.join(self.config['filesystem']['wps_dir'],
                               'metgrid', 'metgrid.exe')

@@ -3,25 +3,13 @@
 import argparse
 import datetime
 import time
+import shutil
+from wrfpy.readObsTemperature import readObsTemperature
 from wrfpy import utils
-from wrfpy.wrfda import wrfda
-
-def obsproc_init(datestart):
-    '''
-    Initialize WPS timestep
-    '''
-    WRFDA = wrfda()  # initialize object
-    WRFDA.obsproc_init(datestart)
-
 
 def main(datestring):
-    '''
-    Main function to initialize WPS timestep:
-      - converts cylc timestring to datetime object
-      - calls wps_init()
-    '''
     dt = utils.convert_cylc_time(datestring)
-    obsproc_init(dt)
+    readObsTemperature(dt, dstationtypes=['davis', 'vp2', 'vantage'])
 
 
 if __name__=="__main__":
@@ -31,4 +19,4 @@ if __name__=="__main__":
     # parse arguments
     args = parser.parse_args()
     # call main
-    main(args.datestring)    
+    main(args.datestring)

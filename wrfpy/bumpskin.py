@@ -207,9 +207,12 @@ class bumpskin(config):
         if not (isinstance(ndoms, int) and ndoms>0):
             raise ValueError("'domains_max_dom' namelist variable should be an " \
                              "integer>0")
-        (lat, lon, diffT) = self.findDiffT(1)
-        for domain in range(1, ndoms+1):
-            self.applyToGrid(lat, lon, diffT, domain)
+        try:
+            (lat, lon, diffT) = self.findDiffT(1)
+            for domain in range(1, ndoms+1):
+                self.applyToGrid(lat, lon, diffT, domain)
+        except TypeError:
+            pass
 
     def verify_input(self, filename):
         '''

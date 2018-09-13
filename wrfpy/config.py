@@ -12,6 +12,7 @@ from wrfpy import utils
 import f90nml
 import yaml
 
+
 class config:
   '''
   description
@@ -33,15 +34,14 @@ class config:
       self.configfile = wrfpy_config
     try:
       logger.debug('Checking if configuration file exists: %s' %self.configfile)
-      utils.check_file_exists(self.configfile)
+      utils.check_file_exists(self.configfile, boolean=False)
+      # read json config file
+      self._read_json()
+      # check config file for consistency and errors
+      self._check_config()
     except IOError:
       # create config file
       self._create_empty_config()
-      # TODO: exit and notify user to manually edit config file
-    # read json config file
-    self._read_json()
-    # check config file for consistency and errors
-    #self._check_config()
 
 
   def _create_empty_config(self):
@@ -49,19 +49,23 @@ class config:
     create empty json config file
     '''
     # define keys
-    keys_dir = ['wrf_dir', 'wrf_run_dir', 'wrfda_dir', 'upp_dir', 'wps_dir',
-                'archive_dir', 'boundary_dir', 'upp_archive_dir', 'work_dir']
-    keys_wrf = ['namelist.input']
+    keys_dir = ['wrf_dir', 'wrf_run_dir', 'wrfda_dir',
+                'upp_dir', 'wps_dir',
+                'archive_dir', 'boundary_dir', 'upp_archive_dir', 'work_dir', 'obs_dir', 'obs_filename', 'radar_filepath']
+    keys_wrf = ['namelist.input', 'urbparm.tbl']
     keys_upp = ['upp', 'upp_interval']
     keys_wrfda = ['namelist.wrfda', 'wrfda', 'wrfda_type', 'cv_type', 'be.dat']
-    keys_general = ['date_start', 'date_end', 'boundary_interval', 'ref_lon',
-                    'ref_lat']
-    keys_wps = ['namelist.wps', 'run_hours', 'vtable']
-    keys_slurm = ['slurm_real.exe', 'slurm_wrf.exe', 'slurm_ungrib.exe',
+    keys_general = ['date_start', 'date_end',
+                    'boundary_interval', 'ref_lon',
+                    'ref_lat', 'run_hours',
+                    'fix_urban_temps']
+    keys_wps = ['namelist.wps', 'run_hours', 'vtable', 'geogrid.tbl', 'metgrid.tbl']
+    keys_slurm = ['slurm_real.exe', 'slurm_wrf.exe',
+                  'slurm_ungrib.exe',
                   'slurm_metgrid.exe', 'slurm_geogrid.exe',
                   'slurm_obsproc.exe', 'slurm_updatebc.exe',
                   'slurm_da_wrfvar.exe']
-    keys_urbantemps = ['TRL_URB', 'TBL_URB', 'TGL_URB', 'TSLB', 'ah.csv']  
+    keys_urbantemps = ['TBL_URB', 'TGL_URB', 'TSLB', 'ah.csv', 'urban_stations']  
     # create dictionaries
     config_dir = {key: '' for key in keys_dir}
     options_general = {key: '' for key in keys_general}
@@ -197,7 +201,7 @@ class config:
                                'integer in %s' %self.configfile)
     # boundary interval should not be larger than time between start_date
     # and end_date
-    assert ((self.config['options_general']['boundary_interval']*3600) < (
+    assert ((self.config['options_general']['boundary_interval']) <= (
       end_date - start_date).total_seconds()), (
         'boundary interval is larger than time between start_date and '
         'end_date')
@@ -221,7 +225,7 @@ class config:
     check if namelist.wps is in the required format and has all keys needed
     '''
     # verify that example namelist.wps exists and is not removed by user
-    basepath = utils.get_script_path()
+    basepath = utils.get_wrfpy_path()
     self.example_file = os.path.join(basepath, 'examples', 'namelist.wps')
     utils.check_file_exists(self.example_file)
     # load specified namelist

@@ -12,17 +12,43 @@ import glob
 import os
 import f90nml
 from wrfpy import utils
+import subprocess
+import shutil
+
 
 class run_wrf(config):
   '''
   run_wrf is a subclass of config  # TODO: use better names
   '''
-  def __init__(self, datestart, dateend):
+  def __init__(self):
     config.__init__(self)
-    # TODO: wrf_run_dir should be flexible if running in UPP mode
-    self.wrf_run_dir = self.config['filesystem']['wrf_run_dir']
-    self.cleanup_previous_wrf_run()
-    self.prepare_wrf_config(datestart, dateend)
+    self.wrf_rundir = self.config['filesystem']['wrf_run_dir']
+
+  def initialize(self, datestart, dateend):
+      '''
+      initialize new WRF run
+      '''
+      self.check_wrf_rundir()
+      self.cleanup_previous_wrf_run()
+      self.prepare_wrf_config(datestart,
+                              dateend)
+
+  def check_wrf_rundir(self):
+    '''
+    check if rundir exists
+    if rundir doesn't exist, copy over content
+    of self.config['filesystem']['wrf_dir']/run
+    '''
+    utils._create_directory(self.wrf_rundir)
+    # create list of files in self.config['filesystem']['wrf_dir']/run
+    files = glob.glob(os.path.join(self.config['filesystem']['wrf_dir'],
+                                   'run', '*'))
+    for fl in files:
+        fname = os.path.basename(fl)
+        if (os.path.splitext(fname)[1] == '.exe'):
+          # don't copy over the executables
+          continue
+        shutil.copyfile(fl, os.path.join(self.wrf_rundir, fname))
 
   def cleanup_previous_wrf_run(self):
     from utils import silentremove
@@ -119,9 +145,9 @@ class run_wrf(config):
                                       stderr=utils.devnull())
         j_id = int(res.split()[-1])  # slurm job-id
       except subprocess.CalledProcessError:
-        logger.error('Real failed %s:' %real_command)
+        #logger.error('Real failed %s:' %real_command)
         raise  # re-raise exception
-      return j_id  # return slurm job-id
+      utils.waitJobToFinish(j_id)
     else:  # run locally
       real_command = os.path.join(self.config['filesystem']['wrf_dir'],
                               'main', 'real.exe')
@@ -130,7 +156,7 @@ class run_wrf(config):
         subprocess.check_call(real_command, cwd=self.wrf_rundir,
                               stdout=utils.devnull(), stderr=utils.devnull())
       except subprocess.CalledProcessError:
-        logger.error('real.exe failed %s:' %real_command)
+        #logger.error('real.exe failed %s:' %real_command)
         raise  # re-raise exception
 
 
@@ -156,7 +182,7 @@ class run_wrf(config):
       except subprocess.CalledProcessError:
         logger.error('Wrf failed %s:' %wrf_command)
         raise  # re-raise exception
-      return j_id  # return slurm job-id
+      utils.waitJobToFinish(j_id)
     else:  # run locally
       wrf_command = os.path.join(self.config['filesystem']['wrf_dir'],
                               'main', 'wrf.exe')

@@ -94,36 +94,45 @@ class configuration(config):
         start_hour = str(
             utils.return_validate
             (self.config['options_general']['date_start']).hour).zfill(2)
+        # check if we need to add upp
+        try:
+            if self.config['options_upp']['upp']:
+                uppBlock = "=> upp"
+            else:
+                uppBlock = ""
+        except KeyError:
+            uppBlock = ""
         # define template
         template = """[scheduling]
     initial cycle point = {{{{ START }}}}
-    final cycle time   = {{{{ STOP }}}}
+    final cycle point   = {{{{ STOP }}}}
     [[dependencies]]
         # Initial cycle point
-        [[[R1/T{start_hour}]]]
+        [[[R1]]]
             graph = \"\"\"
-                wrf_init => wps => wrf_real => wrfda => wrf_run => upp
+                wrf_init => wps => wrf_real => wrfda => wrf_run {upp}
                 obsproc_init => obsproc_run => wrfda
             \"\"\"
         # Repeat every {incr_hour} hours, starting {incr_hour} hours
         # after initial cylce point
         [[[+PT{incr_hour}H/PT{incr_hour}H]]]
             graph = \"\"\"
-                wrf_run[-PT{incr_hour}H] => wrf_init => wrf_real => wrfda => wrf_run => upp
+                wrf_run[-PT{incr_hour}H] => wrf_init => wrf_real => wrfda => wrf_run {upp}
                 wrfda[-PT{incr_hour}H] => obsproc_init => obsproc_run => wrfda
             \"\"\"
         # Repeat every {wps_incr_hour} hours, starting {wps_incr_hour} hours
         # after initial cylce point
         [[[+PT{wps_incr_hour}H/PT{wps_incr_hour}H]]]
             graph = \"\"\"
-                wps[-PT{wps_incr_hour}H] => wps
+                wps[-PT{wps_incr_hour}H] => wps => wrf_init
             \"\"\"
 """
         # context variables in template
         context = {
             "start_hour": start_hour,
             "incr_hour": self.incr_hour,
-            "wps_incr_hour": self.wps_interval_hours
+            "wps_incr_hour": self.wps_interval_hours,
+            "upp": uppBlock
             }
         return template.format(**context)
 
@@ -205,99 +214,46 @@ class configuration(config):
         '''
         define suite.rc runtime information: real.exe
         '''
+        wrf_real = "run_real.py"
         # define template
         template = """
     [[wrf_real]]
         script = \"\"\"
-{command}
+{wrf_real}
 \"\"\"
-        [[[environment]]]
-            WORKDIR = {wrf_run_dir}
-            CYLC_TASK_WORK_DIR = $WORKDIR
         [[[job submission]]]
             method = {method}
         [[[directives]]]
-            {directives}
-"""
-        try:
-            if self.config['options_slurm']['slurm_real.exe']:
-                method = "slurm"
-                command = """#!/usr/bin/env bash
-omp_threads=1
-export OMP_NUM_THREADS=$omp_threads
-srun ./real.exe"""
-                with open(self.config['options_slurm']['slurm_real.exe'],
-                          'r') as myfile:
-                    directives = myfile.read().replace('\n', '\n      ')
-            else:
-                    method = "background"
-                    command = """#!/usr/bin/env bash
-./real.exe"""
-                    directives = ""
-        except KeyError:
-            # slurm_real.exe not found in config.json, default to background
-            method = "background"
-            command = """#!/usr/bin/env bash
-./real.exe"""
-            directives = ""
+            {directives}"""
         # context variables in template
         context = {
-            "command": command,
-            "wrf_run_dir": self.config['filesystem']['wrf_run_dir'],
-            "method": method,
-            "directives": directives
+            "wrf_real": wrf_real,
+            "method": "background",
+            "directives": ""
             }
         return template.format(**context)
+
 
     def _runtime_wrf(self):
         '''
         define suite.rc runtime information: wrf.exe
         '''
+        wrf_run = "run_wrf.py"
         # define template
         template = """
     [[wrf_run]]
         script = \"\"\"
-{command}
+{wrf_run}
 \"\"\"
-        [[[environment]]]
-            WORKDIR = {wrf_run_dir}
-            CYLC_TASK_WORK_DIR = $WORKDIR
         [[[job submission]]]
             method = {method}
         [[[directives]]]
-            {directives}
-"""
-        try:
-            if self.config['options_slurm']['slurm_wrf.exe']:
-                method = "slurm"
-                command = """#!/usr/bin/env bash
-if [ -n "$SLURM_CPUS_PER_TASK" ]; then
-    omp_threads=$SLURM_CPUS_PER_TASK
-else
-    omp_threads=1
-fi
-export OMP_NUM_THREADS=$omp_threads
-srun ./wrf.exe"""
-                with open(self.config['options_slurm']['slurm_wrf.exe'],
-                          'r') as myfile:
-                    directives = myfile.read().replace('\n', '\n      ')
-            else:
-                    method = "background"
-                    directives = ""
-                    command = """#!/usr/bin/env bash
-./wrf.exe"""
-        except KeyError:
-            # slurm_real.exe not found in config.json, default to background
-            method = "background"
-            directives = ""
-            command = """#!/usr/bin/env bash
-./wrf.exe"""
+            {directives}"""
         # context variables in template
         context = {
-            "command": command,
-            "wrf_run_dir": self.config['filesystem']['wrf_run_dir'],
-            "method": method,
-            "directives": directives
+            "wrf_run": wrf_run,
+            "method": "background",
+            "directives": ""
             }
         return template.format(**context)
 
@@ -305,48 +261,22 @@ srun ./wrf.exe"""
         '''
         define suite.rc runtime information: obsproc.exe
         '''
+        obsproc_run = "wrfda_obsproc_run.py $CYLC_TASK_CYCLE_POINT"
         # define template
         template = """
     [[obsproc_run]]
         script = \"\"\"
-{command}
+{obsproc_run}
 \"\"\"
-        [[[environment]]]
-            WORKDIR = {obsproc_dir}
-            CYLC_TASK_WORK_DIR = $WORKDIR
         [[[job submission]]]
             method = {method}
         [[[directives]]]
-            {directives}
-"""
-        try:
-            if self.config['options_slurm']['slurm_obsproc.exe']:
-                method = "slurm"
-                command = """#!/usr/bin/env bash
-srun ./obsproc.exe"""
-                with open(self.config[
-                                    'options_slurm']['slurm_obsproc.exe'],
-                          'r') as myfile:
-                    directives = myfile.read().replace('\n', '\n      ')
-            else:
-                    method = "background"
-                    command = """#!/usr/bin/env bash
-./obsproc.exe"""
-                    directives = ""
-        except KeyError:
-            # slurm_real.exe not found in config.json, default to background
-            method = "background"
-            command = """#!/usr/bin/env bash
-./obsproc.exe"""
-            directives = ""
+            {directives}"""
         # context variables in template
         context = {
-            "command": command,
-            "obsproc_dir": os.path.join(self.config['filesystem']['work_dir'],
-                                        'obsproc', self.config['filesystem'][
-                                        'obs_filename']),
-            "method": method,
-            "directives": directives
+            "obsproc_run":  obsproc_run,
+            "method": "background",
+            "directives": ""
             }
         return template.format(**context)
 
@@ -354,42 +284,22 @@ srun ./obsproc.exe"""
         '''
         define suite.rc runtime information: wrfda
         '''
+        wrfda_run = "wrfda_run.py $CYLC_TASK_CYCLE_POINT"
         # define template
         template = """
     [[wrfda]]
         script = \"\"\"
-{command}
+{wrfda_run}
 \"\"\"
-        [[[environment]]]
-            WORKDIR = {wrfda_dir}
-            CYLC_TASK_WORK_DIR = $WORKDIR
         [[[job submission]]]
             method = {method}
         [[[directives]]]
-            {directives}
-"""
-        command = "wrfda_run.py $CYLC_TASK_CYCLE_POINT"
-        try:
-            if self.config['options_slurm']['slurm_da_wrfvar.exe']:
-                method = "slurm"
-                with open(self.config[
-                                    'options_slurm']['slurm_da_wrfvar.exe'],
-                          'r') as myfile:
-                    directives = myfile.read().replace('\n', '\n      ')
-            else:
-                    method = "background"
-                    directives = ""
-        except KeyError:
-            # slurm_real.exe not found in config.json, default to background
-            method = "background"
-            directives = ""
+            {directives}"""
         # context variables in template
         context = {
-            "wrfda_dir": os.path.join(self.config['filesystem']['work_dir'],
-                                      'wrfda'),
-            "command": command,
-            "method": method,
-            "directives": directives
+            "wrfda_run":  wrfda_run,
+            "method": "background",
+            "directives": ""
             }
         return template.format(**context)
 
@@ -403,7 +313,6 @@ srun ./obsproc.exe"""
         script = \"\"\"
 {command}
 \"\"\"
-        [[[environment]]]
         [[[job submission]]]
             method = {method}
         [[[directives]]]
@@ -445,9 +354,7 @@ srun ./obsproc.exe"""
         pre_command_context = {
             "wps_run_hours": self.wps_interval_hours,
         }
-        command = """#!/usr/bin/env bash
-{wps_dir}/ungrib/ungrib.exe
-{wps_dir}/metgrid/metgrid.exe"""
+        command = "wps_run.py"
         command_context = {
             "wps_dir": self.config['filesystem']['wps_dir']
         }
@@ -471,7 +378,7 @@ srun ./obsproc.exe"""
         template = """
 [visualization]
     initial cycle point = {{ START }}
-    final cycle time   = {{ STOP }}
+    final cycle point   = {{ STOP }}
     default node attributes = "style=filled", "fillcolor=grey"
 """
         return template

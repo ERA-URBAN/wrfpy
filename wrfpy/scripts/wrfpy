@@ -26,8 +26,8 @@ def cli_parser():
                         default=os.path.join(os.path.expanduser("~"),
                                              'cylc-suites'),
                         help="basedir in which suites are installed")
-    parser.add_argument('--suitename', type=str, required=True,
-                        help='name')
+    parser.add_argument('suitename',
+                        type=str, help='name of suite')
     results = vars(parser.parse_args())
     # either initialize or create a suite, not both
     if (results['init'] ^ results['create']):
