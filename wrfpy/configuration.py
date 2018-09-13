@@ -354,9 +354,7 @@ class configuration(config):
         pre_command_context = {
             "wps_run_hours": self.wps_interval_hours,
         }
-        command = """#!/usr/bin/env bash
-{wps_dir}/ungrib/ungrib.exe
-{wps_dir}/metgrid/metgrid.exe"""
+        command = "wps_run.py"
         command_context = {
             "wps_dir": self.config['filesystem']['wps_dir']
         }
