@@ -27,7 +27,8 @@ WRFpy is installable via pip:
 
 ::
 
-   pip install git+https://github.com/ERA-URBAN/wrfpy
+   pip install wrfpy
+
 
 Usage
 ~~~~~
@@ -37,26 +38,27 @@ switches:
 
 ::
 
-   usage: wrfpy [-h] [--init] [--create] [--basedir BASEDIR] --suitename
-                SUITENAME
+   usage: wrfpy [-h] [--init] [--create] [--basedir BASEDIR] suitename
 
    WRFpy
 
+   positional arguments:
+     suitename          name of suite
+
    optional arguments:
-     -h, --help            show this help message and exit
-     --init                Initialize suite (default: False)
-     --create              Create suite config (default: False)
-     --basedir BASEDIR     basedir in which suites are installed (default:
-                           /home/ronald/cylc-suites)
-     --suitename SUITENAME
-                           name (default: None)
+     -h, --help         show this help message and exit
+     --init             Initialize suite (default: False)
+     --create           Create suite config (default: False)
+     --basedir BASEDIR  basedir in which suites are installed (default:
+                        ${HOME}/cylc-suites)
+
 
 In order to set up a new cylc suite, we first need to initialize one.
 This is done using the following command:
 
 ::
 
-   wrfpy --init --suitename testsuite
+   wrfpy --init testsuite
 
 This creates a configuration file (config.json) that needs to be filled
 in by the user before continueing. WRFpy points the user to the location
@@ -68,7 +70,7 @@ create the CYLC suite, use the following command:
 
 ::
 
-   wrfpy --create --suitename testsuite
+   wrfpy --create testsuite
 
 The final configuration lives in a file called suite.rc. If you want to
 make further (specialized) changes to the workflow by adding/tweaking

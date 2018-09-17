@@ -54,7 +54,7 @@ class postprocess(config):
     self.hour_var = [
           #'P_TOP',
           #'ZNU',
-          #'ZNW', 
+          #'ZNW',
           'VEGFRA', #change in time
           'MU',
           'MUB',
@@ -106,7 +106,7 @@ class postprocess(config):
           'QRAIN',
           'QICE',
           'QSNOW',
-          'QGRAUP', 
+          'QGRAUP',
           'CLDFRA',
           'TSLB',
           'SMOIS',
@@ -149,7 +149,7 @@ class postprocess(config):
       'GRAUPELNC',
       'HAILNC']
 
-  def write_netcdf(self, var,inpdata, lat, lon, dt, dim, outfile):
+  def write_netcdf(self, var, inpdata, lat, lon, dt, dim, outfile):
     '''
     Write netcdf output file
     '''
@@ -168,7 +168,7 @@ class postprocess(config):
       ncfile.createDimension('bottom_top', numpy.shape(inpdata)[1])
       ncfile.createDimension('south_north', numpy.shape(inpdata)[2])
       ncfile.createDimension('west_east', numpy.shape(inpdata)[3])
-      data = ncfile.createVariable(var,'f4', 
+      data = ncfile.createVariable(var,'f4',
                                    ('time', 'bottom_top',
                                     'south_north', 'west_east',),
                                    zlib=True, fill_value=-999)
@@ -214,7 +214,7 @@ class postprocess(config):
 
   def archive(self):
     '''
-    description
+    archive standard output files
     '''
     # loop over all domains
     for domain in range(1, self.ndoms + 1):
@@ -277,13 +277,13 @@ class postprocess(config):
 
   def archive_wrfvar_input(self):
     '''
-    description
+    archive wrfvar_input files
     '''
     # loop over all domains
     wrfvar_archivedir = os.path.join(self.archivedir, 'wrfvar')
     utils._create_directory(wrfvar_archivedir)
     start_date = utils.return_validate(
-        self.config['options_general']['date_start'])  
+        self.config['options_general']['date_start'])
     for domain in range(1, self.ndoms + 1):
       # iterate over all variables that need to be archived
         for cdate in pandas.date_range(self.startdate, self.enddate, freq='2H')[:-1]:
@@ -295,10 +295,10 @@ class postprocess(config):
             output_file = os.path.join(wrfvar_archivedir, input_fn)
             # copy wrfvar_input to archive dir
             shutil.copyfile(input_file, output_file)
- 
+
   def archive_static(self):
     '''
-    description
+    archive non-changing files
     '''
     # loop over all domains
     static_archivedir = os.path.join(self.archivedir, 'static')
@@ -316,7 +316,7 @@ class postprocess(config):
 
   def cleanup(self):
     '''
-    description
+    cleanup files in WRF run directory
     '''
     # loop over all domains
     for domain in range(1, self.ndoms + 1):
@@ -332,12 +332,9 @@ class postprocess(config):
 
 def main(datestring):
     '''
-    Main function to initialize WPS timestep:
-      - converts cylc timestring to datetime object
-      - calls wps_init()
+    Main function to call archive class
     '''
     dt = utils.convert_cylc_time(datestring)
-    #postprocess(dt, dt + relativedelta.relativedelta(months=1))
     postprocess(dt-relativedelta.relativedelta(days=1), dt)
 
 
