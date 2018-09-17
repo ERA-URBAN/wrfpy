@@ -23,7 +23,7 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "Topic :: Software Development :: Libraries :: Python Modules",
-        "License :: OSI Approved ::Apache Software License",
+        "License :: OSI Approved :: Apache Software License",
     ],
     install_requires=['numpy', 'Jinja2', 'MarkupSafe', 'PyYAML', 'f90nml'],
 )
