@@ -9,7 +9,7 @@ authors:
 cff-version: "1.0.3"
 commit: 
 date-released: 2018-09-17
-doi:
+doi: 10.5281/zenodo.1420109
 keywords: 
   - "WRF"
   - "WRFDA"
