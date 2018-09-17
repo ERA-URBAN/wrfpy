@@ -6,7 +6,7 @@ def read(fname):
 
 setup(
     name = "WRFpy",
-    version = "0.1.0",
+    version = "0.2.0",
     author = "Ronald van Haren",
     author_email = "r.vanharen@esciencecenter.nl",
     description = ("A python application that provides an easy way to set up,"
