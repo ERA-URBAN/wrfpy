@@ -8,8 +8,8 @@ authors:
     name-particle: van
 cff-version: "1.0.3"
 commit: 
-date-released: 2018-09-17
-doi: 10.5281/zenodo.1420109
+date-released: 2018-09-18
+doi: 10.5281/zenodo.1420918
 keywords: 
   - "WRF"
   - "WRFDA"
