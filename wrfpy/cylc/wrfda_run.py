@@ -40,14 +40,14 @@ class dataAssimilation(config):
         try:
             urbanData = self.config['options_urbantemps']['urban_stations']
         except KeyError:
-            pass
+            urbanData = False
         if urbanData:
             bskin =  bumpskin(urbanData, dstationtypes=['davis', 'vp2', 'vantage'])
         # update URBPARM.TBL with anthropogenic heat factors
         try:
             urbparmFile = self.config['options_wrf']['urbparm.tbl']
         except KeyError:
-            pass
+            urbparmFile = False
         if urbparmFile:
             urbparm(datestart, urbparmFile)
         # update lateral boundary conditions
