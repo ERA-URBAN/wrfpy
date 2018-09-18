@@ -181,9 +181,8 @@ class wps(config):
     # check if geo_em files already exist for all domains
     try:
       for dom in range(1, ndoms + 1):
-        fpath = self.config['filesystem']['wps_dir']
         fname = "geo_em.d{}.nc".format(str(dom).zfill(2))
-        ncfile = Dataset(os.path.join(fpath, fname))
+        ncfile = Dataset(os.path.join(self.wps_workdir, fname))
         ncfile.close()
     except IOError:
       # create geo_em nc files
