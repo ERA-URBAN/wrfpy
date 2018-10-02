@@ -25,6 +25,6 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
         "License :: OSI Approved :: Apache Software License",
     ],
-    install_requires=['numpy', 'Jinja2', 'MarkupSafe', 'PyYAML', 'f90nml'],
+    install_requires=['numpy', 'Jinja2', 'MarkupSafe', 'PyYAML', 'f90nml' 'python-dateutil'],
 )
 
