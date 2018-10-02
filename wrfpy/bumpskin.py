@@ -416,7 +416,7 @@ class bumpskin(config):
         W = 2 * h
         # set safety margin on W/RW >=8 or else SLUCM could misbehave
         # make sure to use the same safety margin in module_sf_urban.F
-        W[(W / RW) < 8.0] = ((8.0 / (W / RW)) * W)[(W / RW) < 8.0]
+        W[(W / RW) > 8.0] = ((8.0 / (W / RW)) * W)[(W / RW) > 8.0]
         CW = numpy.zeros(numpy.shape(uc_urb))
         CW[uc_urb > 5] = 7.51 * uc_urb[uc_urb > 5]**0.78
         CW[uc_urb <= 5] = 6.15 + 4.18 * uc_urb[uc_urb <= 5]
