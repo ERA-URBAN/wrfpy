@@ -263,12 +263,12 @@ class bumpskin(config):
         Cleanup large spatial 2m temperature fluctuations
         '''
         if filter:
-        	# set water points to NaN
-        	t2 = T2
-        	t2[LU_INDEX[0,:]==iswater] = np.nan
-        	# convolution kernel
-	        kernel = np.array([[1,1,1],[1,0,1],[1,1,1]])
-	        # apply convolution kernel
+            # set water points to NaN
+            t2 = T2
+            t2[LU_INDEX[0,:]==iswater] = np.nan
+            # convolution kernel
+            kernel = np.array([[1,1,1],[1,0,1],[1,1,1]])
+            # apply convolution kernel
             T2_filtered = convolve(t2[:], kernel,
                                    nan_treatment='interpolate',
                                    preserve_nan=True)
@@ -282,6 +282,9 @@ class bumpskin(config):
             # replace points with large difference
             # compared to neighboring points
             T2[diff>3] = T2_filtered[diff>3]
+            print('Total points changed in T2 field: ' + len(T2[diff>3]))
+            print('Average increment: ' +
+                  np.sum(diff[diff>3])/len(T2[diff>3]))
         return T2
 
     def get_urban_temp(self, wrfinput, ams):
@@ -309,7 +312,7 @@ class bumpskin(config):
         for point in ams:
             i_idx, j_idx = find_gridpoint(point[0], point[1], lat, lon)
             if (i_idx and j_idx):
-                T2.append(T2_IND[0, i_idx, j_idx])
+                T2.append(T2_IND[i_idx, j_idx])
                 U10.append(wrfinput.variables['U10'][0, i_idx, j_idx])
                 V10.append(wrfinput.variables['V10'][0, i_idx, j_idx])
                 GLW.append(wrfinput.variables['GLW'][0, i_idx, j_idx])
