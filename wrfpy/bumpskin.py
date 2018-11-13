@@ -17,6 +17,7 @@ import csv
 import numpy as np
 import f90nml
 from scipy import interpolate
+from astropy.convolution import convolve
 
 
 def return_float_int(value):
@@ -255,20 +256,51 @@ class bumpskin(config):
         lu_ind = wrfinput.variables['LU_INDEX'][0, :]
         wrfinput.close()
         return (lat,lon, lu_ind)
+     
+    @staticmethod
+    def clean_2m_temp(T2, LU_INDEX, iswater, filter=True):
+        '''
+        Cleanup large spatial 2m temperature fluctuations
+        '''
+        if filter:
+        	# set water points to NaN
+        	t2 = T2
+        	t2[LU_INDEX[0,:]==iswater] = np.nan
+        	# convolution kernel
+	        kernel = np.array([[1,1,1],[1,0,1],[1,1,1]])
+	        # apply convolution kernel
+            T2_filtered = convolve(t2[:], kernel,
+                                   nan_treatment='interpolate',
+                                   preserve_nan=True)
+            # handle domain edges
+            T2_filtered[0,:] = T2[0,:]
+            T2_filtered[-1,:] = T2[-1,:]
+            T2_filtered[:,0] = T2[:,0]
+            T2_filtered[:,-1] = T2[:,-1]
+            # difference between filtered and original
+            diff = np.abs(T2_filtered - T2)
+            # replace points with large difference
+            # compared to neighboring points
+            T2[diff>3] = T2_filtered[diff>3]
+        return T2
 
     def get_urban_temp(self, wrfinput, ams):
         '''
-        get urban temperature TC2M
+        get urban temperature
         '''
         wrfinput = Dataset(wrfinput, 'r')  # open netcdf file
         # get datetime string from wrfinput file
         LU_IND = wrfinput.variables['LU_INDEX'][0, :]
+        iswater = wrfinput.getncattr('ISWATER')
         GLW_IND = wrfinput.variables['GLW'][0, :]
         U10_IND = wrfinput.variables['U10'][0, :]
         V10_IND = wrfinput.variables['V10'][0, :]
         UV10_IND = numpy.sqrt(U10_IND**2 + V10_IND**2)
         lat = wrfinput.variables['XLAT'][0, :]
         lon = wrfinput.variables['XLONG'][0, :]
+        T2_IND = wrfinput.variables['T2'][0, :]
+        T2_IND = self.clean_2m_temp(T2_IND, LU_IND,
+                                    iswater, filter=True)
         T2 = []
         U10 = []
         V10 = []
@@ -277,16 +309,7 @@ class bumpskin(config):
         for point in ams:
             i_idx, j_idx = find_gridpoint(point[0], point[1], lat, lon)
             if (i_idx and j_idx):
-                try:
-                    frcurb = wrfinput.variables['FRC_URB2D'][0, i_idx, j_idx]
-                    tp2m = wrfinput.variables['TP2M_URB'][0, i_idx, j_idx]
-                    tc2m = wrfinput.variables['TC2M_URB'][0, i_idx, j_idx]
-                    t2urb = (1-frcurb) * tp2m + frcurb * tc2m
-                except KeyError:
-                    t2urb = wrfinput.variables['T2'][0, i_idx, j_idx]
-                if t2urb < 225:  # defautl back to T2 for non-urb
-                    t2urb = wrfinput.variables['T2'][0, i_idx, j_idx]
-                T2.append(t2urb)
+                T2.append(T2_IND[0, i_idx, j_idx])
                 U10.append(wrfinput.variables['U10'][0, i_idx, j_idx])
                 V10.append(wrfinput.variables['V10'][0, i_idx, j_idx])
                 GLW.append(wrfinput.variables['GLW'][0, i_idx, j_idx])
