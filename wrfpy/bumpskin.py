@@ -118,11 +118,11 @@ class urbparm(config):
         mnth = np.array(mnth)
         ah = np.array(ah)
         alh = np.array(alh)
-        self.ah = ah[(yr==dtobj.year) & (mnth==dtobj.month)][0]
-        if not float(self.ah)>0:
+        self.ah = ah[(yr == dtobj.year) & (mnth == dtobj.month)][0]
+        if not float(self.ah) > 0:
             self.ah = None
-        self.alh = alh[(yr==dtobj.year) & (mnth==dtobj.month)][0]
-        if not float(self.alh)>0:
+        self.alh = alh[(yr == dtobj.year) & (mnth == dtobj.month)][0]
+        if not float(self.alh) > 0:
             self.alh = None
 
     @staticmethod
@@ -188,8 +188,6 @@ class urbparm(config):
             self.options['ALH'][-1] = self.alh
 
 
-
-
 class bumpskin(config):
     def __init__(self, filename, nstationtypes=None, dstationtypes=None):
         config.__init__(self)
@@ -205,9 +203,9 @@ class bumpskin(config):
         wrf_nml = f90nml.read(self.config['options_wrf']['namelist.input'])
         ndoms = wrf_nml['domains']['max_dom']
         # check if ndoms is an integer and >0
-        if not (isinstance(ndoms, int) and ndoms>0):
-            raise ValueError("'domains_max_dom' namelist variable should be an " \
-                             "integer>0")
+        if not (isinstance(ndoms, int) and ndoms > 0):
+            raise ValueError("'domains_max_dom' namelist variable should be an"
+                             " integer>0")
         try:
             (lat, lon, diffT) = self.findDiffT(1)
             for domain in range(1, ndoms+1):
@@ -255,7 +253,7 @@ class bumpskin(config):
         lon = wrfinput.variables['XLONG'][0, :]
         lu_ind = wrfinput.variables['LU_INDEX'][0, :]
         wrfinput.close()
-        return (lat,lon, lu_ind)
+        return (lat, lon, lu_ind)
      
     @staticmethod
     def clean_2m_temp(T2, LU_INDEX, iswater, filter=True):
@@ -265,26 +263,27 @@ class bumpskin(config):
         if filter:
             # set water points to NaN
             t2 = T2
-            t2[LU_INDEX[0,:]==iswater] = np.nan
+            t2[LU_INDEX[0, :] == iswater] = np.nan
             # convolution kernel
-            kernel = np.array([[1,1,1],[1,0,1],[1,1,1]])
+            kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]])
             # apply convolution kernel
             T2_filtered = convolve(t2[:], kernel,
                                    nan_treatment='interpolate',
                                    preserve_nan=True)
             # handle domain edges
-            T2_filtered[0,:] = T2[0,:]
-            T2_filtered[-1,:] = T2[-1,:]
-            T2_filtered[:,0] = T2[:,0]
-            T2_filtered[:,-1] = T2[:,-1]
+            T2_filtered[0, :] = T2[0, :]
+            T2_filtered[-1, :] = T2[-1, :]
+            T2_filtered[:, 0] = T2[:, 0]
+            T2_filtered[:, -1] = T2[:, -1]
             # difference between filtered and original
             diff = np.abs(T2_filtered - T2)
             # replace points with large difference
             # compared to neighboring points
-            T2[diff>3] = T2_filtered[diff>3]
-            print('Total points changed in T2 field: ' + len(T2[diff>3]))
+            T2[diff > 3] = T2_filtered[diff > 3]
+            print('Total points changed in T2 field: ' +
+                  str(len(T2[diff > 3])))
             print('Average increment: ' +
-                  np.sum(diff[diff>3])/len(T2[diff>3]))
+                  str(np.sum(diff[diff > 3])/len(T2[diff > 3])))
         return T2
 
     def get_urban_temp(self, wrfinput, ams):
@@ -402,9 +401,10 @@ class bumpskin(config):
         # if not ((lat==lat2) and (lon==lon2)) we need to interpolate
         if not (np.array_equal(lat, lat2) and np.array_equal(lon, lon2)):
             # do interpolation to get new diffT
-            diffT = interpolate.griddata((lon.reshape(-1), lat.reshape(-1)), diffT.reshape(-1),
-                                         (lon2.reshape(-1),lat2.reshape(-1)),
-                                          method='cubic').reshape(np.shape(lon2))
+            diffT = interpolate.griddata(
+                (lon.reshape(-1), lat.reshape(-1)), diffT.reshape(-1),
+                (lon2.reshape(-1), lat2.reshape(-1)),
+                method='cubic').reshape(np.shape(lon2))
             diffT[lu_ind2 != 1] = 0  # set to 0 if LU_IND!=1
         # open wrfvar_output (output after data assimilation)
         self.wrfinput2 = Dataset(os.path.join(wrfda_workdir, 'wrfvar_output'),
@@ -477,7 +477,7 @@ class bumpskin(config):
         TBL_URB = self.wrfinput2.variables['TBL_URB']
         for lev in range(0, levs):
             try:
-                TBL_URB[0, lev, :] = (TBL_URB[0, lev, :] + 
+                TBL_URB[0, lev, :] = (TBL_URB[0, lev, :] +
                                       diffT * float(TBL_URB_factors[lev]))
             except IndexError:
                 # no factor for this layer => no increment
@@ -498,7 +498,7 @@ class bumpskin(config):
         TGL_URB = self.wrfinput2.variables['TGL_URB']
         for lev in range(0, levs):
             try:
-                TGL_URB[0, lev, :] = (TGL_URB[0, lev, :] + 
+                TGL_URB[0, lev, :] = (TGL_URB[0, lev, :] +
                                       diffT * float(TGL_URB_factors[lev]))
             except IndexError:
                 # no factor for this layer => no increment
@@ -521,7 +521,8 @@ class bumpskin(config):
             # reset TSLB for urban cells to value before update_lsm
             TSLB[0, lev, :][lu_ind2 == 1] = TSLB_in[0, lev, :][lu_ind2 == 1]
             try:
-                TSLB[0, lev, :] = TSLB[0, lev, :] + diffT * float(TSLB_factors[lev])
+                TSLB[0, lev, :] = (TSLB[0, lev, :] +
+                                   diffT * float(TSLB_factors[lev]))
             except IndexError:
                 pass
 
