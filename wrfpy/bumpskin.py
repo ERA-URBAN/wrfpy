@@ -254,7 +254,7 @@ class bumpskin(config):
         lu_ind = wrfinput.variables['LU_INDEX'][0, :]
         wrfinput.close()
         return (lat, lon, lu_ind)
-     
+
     @staticmethod
     def clean_2m_temp(T2, LU_INDEX, iswater, filter=True):
         '''
@@ -365,9 +365,11 @@ class bumpskin(config):
         # increment differently
         if (len(lu) < 3):
             # no temperature increment for <3 observations
+            print('No temperature increment applied, not enough data.')
             diffT = numpy.zeros(numpy.shape(glw_IND))
         elif ((len(lu) >= 3) & (len(lu) < 5)):
             # use median if between 3 and 5 observations
+            print('Median temperature increment applied: ' + str(median))
             diffT = median * numpy.ones(numpy.shape(glw_IND))
             diffT[LU_IND != 1] = 0
         else:
@@ -380,13 +382,15 @@ class bumpskin(config):
             obs = obs[mask]
             # recalculate median
             median = numpy.nanmedian(diffT_station[mask])
-            print('deltaT: ', median)
             fit = reg_m(diffT_station[mask], [(glw)[mask], uv10[mask]])
             # calculate diffT for every gridpoint
             if fit.f_pvalue <= 0.1:  # use fit if significant
+                print('Temperature increment applied from statistical ',
+                      + 'fit with values: ' + str(fit.params))
                 diffT = (fit.params[1] * glw_IND +
                          fit.params[0] * uv10_IND + fit.params[2])
             else:  # use median
+                print('Median temperature increment applied: ' + str(median))
                 diffT = median * numpy.ones(numpy.shape(glw_IND))
             diffT[LU_IND != 1] = 0  # set to 0 if LU_IND!=1
             return (lat, lon, diffT)
