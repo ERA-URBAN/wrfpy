@@ -235,10 +235,11 @@ class postprocess(config):
                              preserve_nan=True)
             return dataF
         elif data.ndim == 3:
+            dataF = np.zeros(np.shape(data))
             for i in range(0, len(data)):
-                dataF = convolve(data[i, :], kernel,
-                                 nan_treatment='interpolate',
-                                 preserve_nan=True)
+                dataF[i,:] = convolve(data[i, :], kernel,
+                                      nan_treatment='interpolate',
+                                      preserve_nan=True)
             return dataF
         else:
             return data
@@ -259,6 +260,7 @@ class postprocess(config):
             lon_u = wrfout.variables['XLONG_U'][:]
             lat_v = wrfout.variables['XLAT_V'][:]
             lon_v = wrfout.variables['XLONG_V'][:]
+            frc_urb = wrfout.variables['FRC_URB2D'][:]
             wrfout.close()
             # iterate over all variables that need to be archived
             for var in (self.hour_var + self.minute_var):
@@ -275,14 +277,9 @@ class postprocess(config):
                         # compute TC2M_URB from T2, TP2M_URB and FRC_URB2D
                         # load required variables
                         tp2m_urb = self.getvar('TP2M_URB', domain, datestr_in)
+                        # set non-urban points to NaN instead of 0
+                        tp2m_urb[tp2m_urb == 0] == np.nan
                         t2 = self.getvar('T2', domain, datestr_in)
-                        input_fn = ('wrfvar_input' + '_d0' + str(domain) +
-                                    '_' + datestr_in)
-                        input_file = os.path.join(self.rundir, input_fn)
-                        ncfile = ncdf(input_file, 'r')
-                        # read variable and close netCDF file
-                        frc_urb = ncfile.variables[var][:]
-                        ncfile.close()
                         # compute tc2m_urb
                         tmp = (t2 - (1 - frc_urb) * tp2m_urb) / frc_urb
                         # compute spatial filtered variant
@@ -296,8 +293,11 @@ class postprocess(config):
                         tmpF[:, :, -1] = tmp[:, :, -1]
                         # difference between filtered/unfiltered
                         diff = np.abs(tmp - tmpF)
-                        # replace points in tmp where diff>0.5 with tmpF
-                        tmp[diff > 0.5] = tmpF[diff > 0.5]
+                        # replace points in tmp where diff>1 with tmpF
+                        tmp[diff > 1] = tmpF[diff > 1]
+                        # set NaN to 0 in tc2m_urb
+                        tmp[np.isnan(tmp)] = 0
+
 
                     # combine steps from input files
                     if var in self.deac_var:
