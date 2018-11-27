@@ -41,8 +41,9 @@ class config:
     except IOError:
       # create config file
       self._create_empty_config()
-    # check config
-    self._check_config()
+    else:
+      # check config
+      self._check_config()
 
   def _create_empty_config(self):
     '''
