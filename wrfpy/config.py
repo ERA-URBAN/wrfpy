@@ -38,11 +38,11 @@ class config:
       # read json config file
       self._read_json()
       # check config file for consistency and errors
-      self._check_config()
     except IOError:
       # create config file
       self._create_empty_config()
-
+    # check config
+    self._check_config()
 
   def _create_empty_config(self):
     '''
@@ -65,7 +65,8 @@ class config:
                   'slurm_metgrid.exe', 'slurm_geogrid.exe',
                   'slurm_obsproc.exe', 'slurm_updatebc.exe',
                   'slurm_da_wrfvar.exe']
-    keys_urbantemps = ['TBL_URB', 'TGL_URB', 'TSLB', 'ah.csv', 'urban_stations']  
+    keys_urbantemps = ['TBL_URB', 'TGL_URB', 'TSLB',
+                       'ah.csv', 'urban_stations']  
     # create dictionaries
     config_dir = {key: '' for key in keys_dir}
     options_general = {key: '' for key in keys_general}
@@ -100,7 +101,6 @@ class config:
     print(message)
     logger.info(message)
 
-
   def _read_json(self):
     '''
     read json config file
@@ -108,7 +108,6 @@ class config:
     with open(self.configfile, 'r') as infile:
       #self.config = json.load(infile)
       self.config = yaml.safe_load(infile)
-
 
   def _check_config(self):
     '''
@@ -120,7 +119,6 @@ class config:
     self._check_wrfda()  # check wrfda
     self._check_upp()  # check upp
 
-
   def _check_wrfda(self):
     '''
     check if wrfda option is set
@@ -130,7 +128,6 @@ class config:
     if self.config['options_wrfda']['wrfda']:
       self._check_wrfda_type()
       self._check_wrfda_dir()
-
 
   def _check_wrfda_type(self):
     '''
@@ -142,7 +139,6 @@ class config:
                  "config['options']['wrfda_type']")
       logger.error(message)
       raise IOError(message)
-
 
   def _check_wrfda_dir(self):
     '''
@@ -160,12 +156,10 @@ class config:
     # check if all files in the list exist and are readable
     [utils.check_file_exists(filename) for filename in files_to_check]
 
-
   def _check_upp(self):
     if self.config['options_upp']['upp']:
       # TODO: check UPP interval
       self._check_upp_dir()
-
 
   def _check_upp_dir(self):
     assert os.path.isdir(self.config['filesystem']['upp_dir']), (
@@ -176,7 +170,6 @@ class config:
       filename in ['bin/unipost.exe', 'parm/wrf_cntrl.parm']]
     # check if all files in the list exist and are readable
     [utils.check_file_exists(filename) for filename in files_to_check]
-
 
   def _check_general(self):
     '''
@@ -192,20 +185,19 @@ class config:
       self.config['options_general']['date_end'])
     # end_date should be after start_date
     if (start_date >= end_date):
-      message = ''
+      message = 'start_date is after end_date'
       logger.error(message)
       raise IOError(message)
     # boundary interval should be an int number of hours
     assert isinstance(self.config['options_general']['boundary_interval'],
-                        int), ('boundary_interval should be given as an '
-                               'integer in %s' %self.configfile)
+                      int), ('boundary_interval should be given as an '
+                             'integer in %s' % self.configfile)
     # boundary interval should not be larger than time between start_date
     # and end_date
     assert ((self.config['options_general']['boundary_interval']) <= (
       end_date - start_date).total_seconds()), (
         'boundary interval is larger than time between start_date and '
         'end_date')
-
 
   def _check_wps(self):
     '''
@@ -235,7 +227,6 @@ class config:
     # validate the key information specified
     self._validate_namelist_wps_keys()
 
-
   def _verify_namelist_wps_keys(self):
     '''
     verify that all keys in example_nml are also in user_nml
@@ -249,14 +240,12 @@ class config:
           'Key not found in user specified namelist: %s'
           %self.config['options_wps']['namelist.wps'])
 
-
   def _validate_namelist_wps_keys(self):
     '''
     verify that user specified namelist.wps contains valid information
     for all domains specified by the max_dom key
     '''
     pass
-
 
   def _check_wrf(self):
     '''
@@ -270,10 +259,8 @@ class config:
     # check if namelist.input is in the required format and has all keys needed
     self._check_namelist_wrf()
 
-
   def _check_namelist_wrf(self):
     '''
     check if namelist.input is in the required format and has all keys needed
     '''
     pass
-
