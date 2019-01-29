@@ -94,7 +94,7 @@ class run_wrf(config):
             }
     # loop over dictionary and set start/end date parameters
     for el in dict.keys():
-      if type(dict[el])!=list:
+      if not isinstance(dict[el], list):
         wrf_nml[el.split(':')[0]][el.split(':')[1]] = [dict[el]] * ndoms
       else:
         wrf_nml[el.split(':')[0]][el.split(':')[1]] = dict[el] * ndoms
