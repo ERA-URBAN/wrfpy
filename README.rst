@@ -63,7 +63,7 @@ This is done using the following command:
    wrfpy --init testsuite
 
 This creates a configuration file (config.json) that needs to be filled
-in by the user before continueing. WRFpy points the user to the location
+in by the user before continuing. WRFpy points the user to the location
 of this file.
 
 After the configuration file has been filled, it is time to create the

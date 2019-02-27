@@ -67,7 +67,7 @@ class config:
                   'slurm_obsproc.exe', 'slurm_updatebc.exe',
                   'slurm_da_wrfvar.exe']
     keys_urbantemps = ['TBL_URB', 'TGL_URB', 'TSLB',
-                       'ah.csv', 'urban_stations']  
+                       'ah.csv', 'urban_stations']
     # create dictionaries
     config_dir = {key: '' for key in keys_dir}
     options_general = {key: '' for key in keys_general}
@@ -189,6 +189,9 @@ class config:
       message = 'start_date is after end_date'
       logger.error(message)
       raise IOError(message)
+    # check if run_hours is specified
+    run_hours = self.config['options_general']['run_hours']
+    assert run_hours, "No General run_hours specified in config file"
     # boundary interval should be an int number of hours
     assert isinstance(self.config['options_general']['boundary_interval'],
                       int), ('boundary_interval should be given as an '
@@ -209,6 +212,9 @@ class config:
       'No WPS namelist.wps specified in config file')
     # check if specified namelist.wps exist and are readable
     utils.check_file_exists(self.config['options_wps']['namelist.wps'])
+    # check if run_hours is specified
+    run_hours = self.config['options_wps']['run_hours']
+    assert run_hours, "No WPS run_hours specified in config file"
     # check if namelist.wps is in the required format and has all keys needed
     self._check_namelist_wps()
 
