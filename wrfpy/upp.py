@@ -180,7 +180,7 @@ NCAR
     except IOError as e:
       #logger.error('Unable to write itag file: %s' %filename)
       print('Unable to write itag file: %s' %filename)
-      raise  # re-raise exception
+      raise e  # re-raise exception
     #logger.debug('Leave write_itag')
 
 
