@@ -26,6 +26,6 @@ setup(
         "License :: OSI Approved :: Apache Software License",
     ],
     install_requires=['numpy', 'Jinja2', 'MarkupSafe', 'PyYAML', 'f90nml',
-                      'python-dateutil', 'astropy'],
+                      'python-dateutil', 'astropy', 'pathos'],
 )
 

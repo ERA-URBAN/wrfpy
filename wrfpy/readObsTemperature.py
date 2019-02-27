@@ -11,6 +11,7 @@ import numpy as np
 import bisect
 from datetime import datetime
 import glob
+from pathos.multiprocessing import ProcessPool as Pool
 
 
 class readObsTemperature(config):
@@ -33,7 +34,7 @@ class readObsTemperature(config):
                 # reading existing csv file failed, start from scratch
                 self.urbStations = self.config['options_urbantemps']['urban_stations']
                 self.verify_input()
-                self.obs_temp(dtobj)
+                self.obs_temp_p(dtobj)
                 self.write_csv(datestr)
             else:
                 raise
@@ -56,65 +57,69 @@ class readObsTemperature(config):
                 # re-raise error
                 raise
 
-    def obs_temp(self, dtobj):
+    def obs_temp_p(self, dtobj):
         '''
-        get observed temperature in amsterdam
+        get observed temperature in amsterdam parallel
         '''
-        obs_lon = []
-        obs_lat = []
-        obs_temp = []
-        obs_stype = []
-        obs_sname = []
-        for f in self.filelist:
-            try:
-                obs = Dataset(f, 'r')
-                lon = obs.variables['longitude'][0]
-                lat = obs.variables['latitude'][0]
-                elevation = 0
-                try:
-                    stationtype = obs.stationtype
-                except AttributeError:
-                    stationtype = None
-                stobs = (lat, lon, elevation, stationtype)
-                use_station = self.filter_stationtype(stobs, dtobj)
-                if use_station:
-                    dt = obs.variables['time']
-                    # convert datetime object to dt.units units
-                    dtobj_num = date2num(dtobj, units=dt.units,
-                                         calendar=dt.calendar)
-                    # make use of the property that the array is already
-                    #  sorted to find the closest date
-                    ind = bisect.bisect_left(dt[:], dtobj_num)
-                    if (ind == 0):
-                        continue
-                    else:
-                        am = np.argmin([abs(dt[ind]-dtobj_num),
-                                        abs(dt[ind-1]-dtobj_num)])
-                        if (am == 0):
-                            idx = ind
-                        else:
-                            idx = ind - 1
-                    if abs((dt[:]-dtobj_num)[idx]) > 900:
-                        # ignore observation if time difference
-                        # between model and observation is > 15 minutes
-                        continue
-                    temp = obs.variables['temperature'][idx]
-                    sname = f[:]  # stationname
-                    obs.close()
-                    # append results to lists
-                    obs_lon.append(lon)
-                    obs_lat.append(lat)
-                    obs_temp.append(temp)
-                    obs_stype.append(stationtype)
-                    obs_sname.append(sname)
-            except IOError:
-                pass
-            except AttributeError:
-                pass
+        self.dtobjP = dtobj
+        pool = Pool()
+        obs = pool.map(self.obs_temp, self.filelist)
+        self.obs = [ob for ob in obs if ob is not None]
+ 
+    def obs_temp(self, f):
+        '''
+        get observed temperature in amsterdam per station
+        '''
         try:
-            self.obs = zip(obs_lat, obs_lon, obs_temp, obs_stype, obs_sname)
+            obs = Dataset(f, 'r')
+            obs_lon = obs.variables['longitude'][0]
+            obs_lat = obs.variables['latitude'][0]
+            elevation = 0
+            try:
+                stationtype = obs.stationtype
+            except AttributeError:
+                stationtype = None
+            stobs = (obs_lat, obs_lon, elevation, stationtype)
+            use_station = self.filter_stationtype(stobs, self.dtobjP)
+            if use_station:
+                dt = obs.variables['time']
+                # convert datetime object to dt.units units
+                dtobj_num = date2num(self.dtobjP, units=dt.units,
+                                     calendar=dt.calendar)
+                # make use of the property that the array is already
+                #  sorted to find the closest date
+                try:
+                    ind = bisect.bisect_left(dt[:], dtobj_num)
+                except RuntimeError:
+                    return
+                if ((ind == 0) or (ind == len(dt))):
+                    return None
+                else:
+                    am = np.argmin([abs(dt[ind]-dtobj_num),
+                                    abs(dt[ind-1]-dtobj_num)])
+                    if (am == 0):
+                        idx = ind
+                    else:
+                        idx = ind - 1
+                if abs((dt[:]-dtobj_num)[idx]) > 900:
+                    # ignore observation if time difference
+                    # between model and observation is > 15 minutes
+                    return None
+                temp = obs.variables['temperature'][idx]
+                sname = f[:]  # stationname
+                obs.close()
+                # append results to lists
+                obs_temp = temp
+                obs_stype = stationtype
+                obs_sname= sname
+        except IOError:
+            return None
+        except AttributeError:
+            return None
+        try:
+            return (obs_lat, obs_lon, obs_temp, obs_stype, obs_sname)
         except UnboundLocalError:
-            self.obs = [()]
+            return None
 
     def filter_stationtype(self, stobs, dtobj):
         '''

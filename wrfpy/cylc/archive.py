@@ -237,9 +237,9 @@ class postprocess(config):
         elif data.ndim == 3:
             dataF = np.zeros(np.shape(data))
             for i in range(0, len(data)):
-                dataF[i,:] = convolve(data[i, :], kernel,
-                                      nan_treatment='interpolate',
-                                      preserve_nan=True)
+                dataF[i, :] = convolve(data[i, :], kernel,
+                                       nan_treatment='interpolate',
+                                       preserve_nan=True)
             return dataF
         else:
             return data
@@ -297,8 +297,6 @@ class postprocess(config):
                         tmp[diff > 1] = tmpF[diff > 1]
                         # set NaN to 0 in tc2m_urb
                         tmp[np.isnan(tmp)] = 0
-
-
                     # combine steps from input files
                     if var in self.deac_var:
                         # need to deaccumulate this variable
