@@ -278,7 +278,7 @@ class postprocess(config):
                         # load required variables
                         tp2m_urb = self.getvar('TP2M_URB', domain, datestr_in)
                         # set non-urban points to NaN instead of 0
-                        tp2m_urb[tp2m_urb == 0] == np.nan
+                        tp2m_urb[tp2m_urb == 0] = np.nan
                         t2 = self.getvar('T2', domain, datestr_in)
                         # compute tc2m_urb
                         tmp = (t2 - (1 - frc_urb) * tp2m_urb) / frc_urb
