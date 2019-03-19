@@ -5,3 +5,5 @@ f90nml
 python-dateutil==2.7.3
 astropy==2.0.9
 pathos==0.2.2.1
+netCDF4
+pyOpenSSL
