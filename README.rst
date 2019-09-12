@@ -67,8 +67,8 @@ in by the user before continuing. WRFpy points the user to the location
 of this file.
 
 After the configuration file has been filled, it is time to create the
-actual configuration that will be used by the CYLC workflow engine. To
-create the CYLC suite, use the following command:
+actual configuration that will be used by the Cylc workflow engine. To
+create the Cylc suite, use the following command:
 
 ::
 
@@ -79,12 +79,12 @@ make further (specialized) changes to the workflow by adding/tweaking
 steps, you can directly edit the suite.rc file with your favorite
 editor.
 
-Now it is time to register the suite with CYLC. CYLC is available at
+Now it is time to register the suite with Cylc. Cylc is available at
 
 ::
 
-   https://cylc.github.io/cylc/
+   https://cylc.github.io/
 
-and has great documentation. From now on you are using CYLC to control
-your WRF runs. Please consult the CYLC documentation for the relevant
+and has great documentation. From now on you are using Cylc to control
+your WRF runs. Please consult the Cylc documentation for the relevant
 commands.
